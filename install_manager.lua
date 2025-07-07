@@ -70,7 +70,7 @@ local function checkReactors()
     local reactorCount = 0
     local transposerCount = 0
     
-    for address, type in component.list("reactor") do
+    for address, type in component.list("reactor_chamber") do
         reactorCount = reactorCount + 1
     end
     

@@ -93,8 +93,8 @@ config.RETRY_DELAY = 30  -- Задержка повторной попытки (
 ### Настройка сторон Transposer
 ```lua
 config.TRANSPOSER_SIDES = {
-    REACTOR = 0,  -- Сторона с реактором
-    ME_SYSTEM = 1  -- Сторона с ME Interface
+    REACTOR = 2,  -- Сторона с реактором
+    ME_SYSTEM = 3  -- Сторона с ME Interface
 }
 ```
 

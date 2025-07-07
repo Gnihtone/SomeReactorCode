@@ -53,7 +53,7 @@ function ReactorManager:autoDetectComponents()
         table.insert(transposers, address)
     end
     
-    for address, type in component.list("reactor") do
+    for address, type in component.list("reactor_chamber") do
         table.insert(reactors, address)
     end
     
