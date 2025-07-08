@@ -24,6 +24,8 @@ function VacuumReactor:new(name)
     self.reactor = nil
     self.transposer = nil
     self.meInterface = nil
+
+    self.currentLayout = {}
     
     -- Состояние реактора
     self.status = {
@@ -117,6 +119,17 @@ function VacuumReactor:stopReactor()
     return true
 end
 
+function VacuumReactor:updateCurrentLayout()
+    self.currentLayout = {}
+    local inventorySize = self.transposer.getInventorySize(config.SIDES.REACTOR)
+    for slot = 1, inventorySize do
+        local stack = self.transposer.getStackInSlot(config.SIDES.REACTOR, slot)
+        if stack then
+            self.currentLayout[slot] = stack
+        end
+    end
+end
+
 -- Выполнение технического обслуживания
 function VacuumReactor:performMaintenance()
     if self.maintenanceMode then
@@ -133,6 +146,7 @@ function VacuumReactor:performMaintenance()
         self:log("INFO", "Реактор остановлен для обслуживания")
     end
     
+    self:updateCurrentLayout()
     local success = true
     
     -- Проверка и замена поврежденных coolant cells
@@ -172,10 +186,10 @@ end
 -- Проверка состояния coolant cells
 function VacuumReactor:checkCoolantCells()
     local damagedCells = {}
-    local inventorySize = self.transposer.getInventorySize(config.SIDES.REACTOR)
+    local inventorySize = #self.currentLayout
     
     for slot = 1, inventorySize do
-        local stack = self.transposer.getStackInSlot(config.SIDES.REACTOR, slot)
+        local stack = self.currentLayout[slot]
         if stack and self:isCoolantCell(stack.name) then
             local damagePercent = stack.damage / stack.maxDamage
             if damagePercent >= config.REACTOR.COOLANT_MIN_DAMAGE then
@@ -214,10 +228,10 @@ end
 -- Проверка на истощенные стержни
 function VacuumReactor:checkDepletedRods()
     local depletedRods = {}
-    local inventorySize = self.transposer.getInventorySize(config.SIDES.REACTOR)
+    local inventorySize = #self.currentLayout
     
     for slot = 1, inventorySize do
-        local stack = self.transposer.getStackInSlot(config.SIDES.REACTOR, slot)
+        local stack = self.currentLayout[slot]
         if stack and self:isDepletedRod(stack.name) then
             table.insert(depletedRods, {
                 slot = slot,
@@ -246,7 +260,7 @@ function VacuumReactor:replaceCoolantCells(damagedCells)
             -- Попытка получить новую cell из ME системы
             local originalCell = self.savedLayout[cell.slot]
             if originalCell and self:isCoolantCell(originalCell.name) then
-                local pulled = self:pullFromME(originalCell.name, 1, cell.slot, 0)
+                local pulled = self:pullFromME(originalCell.name, 1, cell.slot, nil)
                 if pulled == 0 then
                     success = false
                     self:log("ERROR", "Не удалось получить coolant cell для слота " .. cell.slot)
@@ -342,10 +356,10 @@ end
 -- Сохранение текущей схемы реактора
 function VacuumReactor:saveCurrentLayout()
     self.savedLayout = {}
-    local inventorySize = self.transposer.getInventorySize(config.SIDES.REACTOR)
+    local inventorySize = #self.currentLayout
     
     for slot = 1, inventorySize do
-        local stack = self.transposer.getStackInSlot(config.SIDES.REACTOR, slot)
+        local stack = self.currentLayout[slot]
         if stack then
             self.savedLayout[slot] = {
                 name = stack.name,
@@ -364,10 +378,10 @@ function VacuumReactor:installEmergencyCooling()
     self:log("INFO", "Установка аварийного охлаждения...")
     
     -- Перемещение всех предметов из реактора в ME систему
-    local inventorySize = self.transposer.getInventorySize(config.SIDES.REACTOR)
+    local inventorySize = #self.currentLayout
     
     for slot = 1, inventorySize do
-        local stack = self.transposer.getStackInSlot(config.SIDES.REACTOR, slot)
+        local stack = self.currentLayout[slot]
         if stack then
             self.meInterface:exportToME(config.SIDES.REACTOR, slot, stack.size)
         end
@@ -407,9 +421,9 @@ function VacuumReactor:restoreLayout()
     self:log("INFO", "Восстановление схемы реактора...")
     
     -- Очистка реактора
-    local inventorySize = self.transposer.getInventorySize(config.SIDES.REACTOR)
+    local inventorySize = #self.currentLayout
     for slot = 1, inventorySize do
-        local stack = self.transposer.getStackInSlot(config.SIDES.REACTOR, slot)
+        local stack = self.currentLayout[slot]
         if stack then
             self.meInterface:exportToME(config.SIDES.REACTOR, slot, stack.size)
         end
@@ -514,6 +528,7 @@ function VacuumReactor:update()
         end
     end
     
+    self:updateCurrentLayout()
     -- Анализ состояния компонентов
     self:analyzeComponents()
     
@@ -546,10 +561,10 @@ function VacuumReactor:analyzeComponents()
     local fuelCount = 0
     local depletedFuel = 0
     
-    local inventorySize = self.transposer.getInventorySize(config.SIDES.REACTOR)
+    local inventorySize = #self.currentLayout
     
     for slot = 1, inventorySize do
-        local stack = self.transposer.getStackInSlot(config.SIDES.REACTOR, slot)
+        local stack = self.currentLayout[slot]
         if stack then
             -- Проверка coolant cells
             for _, coolantType in ipairs(config.ITEMS.COOLANT_CELLS) do
