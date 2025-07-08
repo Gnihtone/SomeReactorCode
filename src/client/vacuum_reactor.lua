@@ -94,6 +94,7 @@ function VacuumReactor:startReactor()
         self:log("WARNING", "Обслуживание не завершено, но реактор будет запущен")
     end
     
+    self:saveCurrentLayout()
     self.reactor.setActive(true)
     self.running = true
     self.status.running = true

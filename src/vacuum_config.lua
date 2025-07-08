@@ -47,15 +47,15 @@ config.ITEMS = {
     
     -- Топливные стержни
     FUEL_RODS = {
-        "IC2:reactorUraniumQuad",
-        "IC2:reactorMOXQuad",
-        "gregtech:gt.Thoriumcell",
-        "gregtech:gt.ThoriumDoublecell", 
-        "gregtech:gt.ThoriumQuadcell",
-        "gregtech:gt.NaquadahDoublecell",
-        "gregtech:gt.NaquadahQuadcell",
-        "gregtech:gt.MNqDoublecell",
-        "gregtech:gt.MNqQuadcell"
+        "gregtech:gt.reactorUraniumQuad",
+        "gregtech:gt.reactorMOXQuad",
+        "gregtech:gt.Quad_Naquadahcell",
+        "gregtech:gt.Quad_MNqCell",
+        "bartworks:gt.Quad_Tiberiumcell",
+        "GoodGenerator:rodLiquidPlutonium4",
+        "GoodGenerator:rodLiquidUranium4",
+        "GoodGenerator:rodCompressedPlutonium4",
+        "GoodGenerator:rodCompressedUranium4",
     }
 }
 
