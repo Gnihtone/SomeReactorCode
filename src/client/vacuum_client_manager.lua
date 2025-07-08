@@ -234,6 +234,7 @@ function VacuumClientManager:run()
     
     -- Закрытие протокола
     self.protocol:close()
+    self.reactor:stopReactor()
 end
 
 -- Остановка менеджера
