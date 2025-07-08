@@ -11,7 +11,7 @@ function MEInterface:new(transposerAddress)
     
     self.transposer = component.proxy(transposerAddress)
     self.meInterfaceAddress = nil
-    self.meSide = config.TRANSPOSER_SIDES.ME_SYSTEM
+    self.meSide = config.SIDES.ME_SYSTEM
     
     -- Поиск ME Interface
     self:findMEInterface()

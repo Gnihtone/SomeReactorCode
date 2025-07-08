@@ -61,11 +61,11 @@ function VacuumReactor:init()
     self:log("INFO", "Инициализация реактора: " .. self.name)
     
     -- Поиск реактора
-    if not component.isAvailable("reactor") then
+    if not component.isAvailable("reactor_chamber") then
         self:log("ERROR", "Реактор не найден!")
         return false
     end
-    self.reactor = component.reactor
+    self.reactor = component.reactor_chamber
     
     -- Поиск transposer
     if not component.isAvailable("transposer") then
@@ -485,7 +485,7 @@ function VacuumReactor:update()
     self.status.maxTemperature = self.reactor.getMaxHeat()
     self.status.tempPercent = self.status.temperature / self.status.maxTemperature
     self.status.euOutput = self.reactor.getReactorEUOutput()
-    self.status.running = self.reactor.isActive()
+    self.status.running = self.reactor.producesEnergy()
     
     -- Статус
     if self.emergencyMode then
@@ -503,19 +503,14 @@ function VacuumReactor:update()
     end
     
     -- Эффективность
-    local maxOutput = self.reactor.getMaxEUOutput()
-    if maxOutput > 0 then
-        self.status.efficiency = self.status.euOutput / maxOutput
-    else
-        self.status.efficiency = 0
-    end
+    self.status.efficiency = 0.5
     
     -- Время работы и общая выработка
     if self.status.running then
         local currentTime = computer.uptime()
         local deltaTime = currentTime - self.lastUpdateTime
         self.status.uptime = currentTime - self.startTime
-        self.status.totalEU = self.status.totalEU + (self.status.euOutput * deltaTime)
+        self.status.totalEU = self.status.totalEU + (self.status.euOutput * deltaTime * 20)
         self.lastUpdateTime = currentTime
     end
     

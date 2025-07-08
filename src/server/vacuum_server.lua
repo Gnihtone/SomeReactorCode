@@ -234,6 +234,17 @@ function VacuumServer:sendReactorCommand(reactorName, command)
     end
 end
 
+function VacuumServer:sendReactorCommandToAll(command)
+    for address, client in pairs(self.clients) do
+        self:sendReactorCommand(client.name, command)
+    end
+end
+
+function VacuumServer:exit()
+    self:sendReactorCommandToAll(config.COMMANDS.STOP)
+    self.running = false
+end
+
 -- Обработка команд пользователя
 function VacuumServer:handleUserInput(key, code)
     if key == keyboard.keys.up then
@@ -275,7 +286,7 @@ function VacuumServer:handleUserInput(key, code)
         self:discoverClients()
     elseif key == keyboard.keys.q then
         -- Выход
-        self.running = false
+        self:exit()
     elseif key >= keyboard.keys["1"] and key <= keyboard.keys["9"] then
         -- Быстрый выбор реактора по номеру
         local index = key - keyboard.keys["1"] + 1
@@ -326,7 +337,7 @@ function VacuumServer:run()
             local _, _, _, code = table.unpack(eventData)
             self:handleUserInput(code, code)
         elseif eventData[1] == "interrupted" then
-            self.running = false
+            self:exit()
         end
     end
     
@@ -354,7 +365,7 @@ local server = VacuumServer:new()
 -- Обработка прерывания
 event.listen("interrupted", function()
     print("\nОстановка сервера...")
-    server.running = false
+    server:exit()
 end)
 
 -- Запуск сервера
