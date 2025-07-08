@@ -2,6 +2,7 @@
 local component = require("component")
 local serialization = require("serialization")
 local config = require("vacuum_config")
+local event = require("event")
 
 local Protocol = {}
 Protocol.__index = Protocol
@@ -65,11 +66,11 @@ function Protocol:receive(timeout)
     if not self.modem then
         return nil, "Модем не инициализирован"
     end
+
+    local modem_message_event = {event.pull(timeout or 0, "modem_message")}
     
-    local event = {component.modem.pull(timeout or 0, "modem_message")}
-    
-    if event[1] then
-        local _, _, from, port, _, serialized = table.unpack(event)
+    if modem_message_event[1] then
+        local _, _, from, port, _, serialized = table.unpack(modem_message_event)
         
         if port == config.NETWORK.PORT then
             local success, message = pcall(serialization.unserialize, serialized)

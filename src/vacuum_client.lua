@@ -328,7 +328,7 @@ function VacuumClient:updateReactorData()
     self.reactorData.maxTemperature = self.reactor.getMaxHeat()
     self.reactorData.tempPercent = self.reactorData.temperature / self.reactorData.maxTemperature
     self.reactorData.euOutput = self.reactor.getReactorEUOutput()
-    self.reactorData.running = self.reactor.isActive()
+    self.reactorData.running = self.reactor.producesEnergy()
     
     -- Статус
     if self.emergencyMode then
@@ -344,19 +344,14 @@ function VacuumClient:updateReactorData()
     end
     
     -- Эффективность
-    local maxOutput = self.reactor.getMaxEUOutput()
-    if maxOutput > 0 then
-        self.reactorData.efficiency = self.reactorData.euOutput / maxOutput
-    else
-        self.reactorData.efficiency = 0
-    end
+    self.reactorData.efficiency = 0.5
     
     -- Время работы и общая выработка
     if self.reactorData.running then
         local currentTime = computer.uptime()
         local deltaTime = currentTime - (self.lastUpdateTime or currentTime)
         self.reactorData.uptime = currentTime - self.startTime
-        self.reactorData.totalEU = self.reactorData.totalEU + (self.reactorData.euOutput * deltaTime)
+        self.reactorData.totalEU = self.reactorData.totalEU + (self.reactorData.euOutput * deltaTime * 20)
         self.lastUpdateTime = currentTime
     end
     
