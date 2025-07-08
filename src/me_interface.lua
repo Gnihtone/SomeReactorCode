@@ -1,6 +1,6 @@
 -- Модуль работы с ME Interface Applied Energistics 2
 local component = require("component")
-local config = require("config")
+local config = require("vacuum_config")
 
 local MEInterface = {}
 MEInterface.__index = MEInterface
@@ -11,7 +11,7 @@ function MEInterface:new(transposerAddress)
     
     self.transposer = component.proxy(transposerAddress)
     self.meInterfaceAddress = nil
-    self.meSide = config.TRANSPOSER_SIDES.ME_SYSTEM
+    self.meSide = config.SIDES.ME_SYSTEM
     
     -- Поиск ME Interface
     self:findMEInterface()
@@ -109,53 +109,6 @@ function MEInterface:importFromME(itemName, amount, toSide, toSlot, damage)
     )
     
     return transferred
-end
-
--- Получение списка доступных предметов в ME
-function MEInterface:getAvailableItems()
-    local items = {}
-    local inventorySize = self.transposer.getInventorySize(self.meSide)
-    
-    if not inventorySize then
-        return items
-    end
-    
-    for slot = 1, inventorySize do
-        local stack = self.transposer.getStackInSlot(self.meSide, slot)
-        if stack then
-            local key = stack.name .. ":" .. stack.damage
-            if not items[key] then
-                items[key] = {
-                    name = stack.name,
-                    label = stack.label,
-                    damage = stack.damage,
-                    size = 0,
-                    slots = {}
-                }
-            end
-            items[key].size = items[key].size + stack.size
-            table.insert(items[key].slots, slot)
-        end
-    end
-    
-    return items
-end
-
--- Проверка наличия coolant cells в ME
-function MEInterface:hasAvailableCoolantCells()
-    for _, cellType in ipairs(config.ITEM_TYPES.COOLANT_CELL) do
-        local slot = self:findItemInME(cellType, 0, 1)  -- Ищем неповрежденные cells
-        if slot then
-            return true
-        end
-    end
-    return false
-end
-
--- Проверка наличия топливных стержней в ME
-function MEInterface:hasAvailableFuelRods(rodType)
-    local slot = self:findItemInME(rodType)
-    return slot ~= nil
 end
 
 return MEInterface 

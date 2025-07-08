@@ -110,9 +110,9 @@ config.COMMANDS = {
 
 -- Настройки сторон transposer
 config.SIDES = {
-    REACTOR = 0,  -- bottom
-    ME_SYSTEM = 1,  -- top
-    BACKUP_STORAGE = 2  -- back (для аварийного хранения)
+    REACTOR = 2,  -- back
+    ME_SYSTEM = 3,  -- front
+    BACKUP_STORAGE = 0  -- bottom (для аварийного хранения)
 }
 
 -- Уровни логирования
