@@ -59,10 +59,10 @@ function VacuumClient:init()
     print("Инициализация клиента реактора: " .. self.name)
     
     -- Поиск реактора
-    if not component.isAvailable("reactor") then
+    if not component.isAvailable("reactor_chamber") then
         error("Реактор не найден!")
     end
-    self.reactor = component.reactor
+    self.reactor = component.reactor_chamber
     
     -- Поиск transposer
     if not component.isAvailable("transposer") then
