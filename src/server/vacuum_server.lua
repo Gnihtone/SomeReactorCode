@@ -4,8 +4,8 @@ local event = require("event")
 local thread = require("thread")
 local keyboard = require("keyboard")
 local computer = require("computer")
-local config = require("vacuum_config")
-local Protocol = require("vacuum_protocol")
+local config = require("../vacuum_config")
+local Protocol = require("../vacuum_protocol")
 local VacuumUI = require("vacuum_ui")
 
 -- Класс сервера
@@ -102,6 +102,7 @@ function VacuumServer:handleClientRegister(data, address)
             running = false,
             emergencyMode = false,
             emergencyCooldown = 0,
+            maintenanceMode = false,
             totalEU = 0
         }
     }
@@ -260,6 +261,12 @@ function VacuumServer:handleUserInput(key, code)
         local reactor = self.ui:getSelectedReactor()
         if reactor and reactor.emergencyMode then
             self:sendReactorCommand(reactor.name, config.COMMANDS.CLEAR_EMERGENCY)
+        end
+    elseif key == keyboard.keys.m then
+        -- Принудительное обслуживание
+        local reactor = self.ui:getSelectedReactor()
+        if reactor then
+            self:sendReactorCommand(reactor.name, "FORCE_MAINTENANCE")
         end
     elseif key == keyboard.keys.r then
         -- Обновление (повторное обнаружение клиентов)

@@ -11,7 +11,7 @@ function MEInterface:new(transposerAddress)
     
     self.transposer = component.proxy(transposerAddress)
     self.meInterfaceAddress = nil
-    self.meSide = config.SIDES.ME_SYSTEM
+    self.meSide = config.TRANSPOSER_SIDES.ME_SYSTEM
     
     -- Поиск ME Interface
     self:findMEInterface()
@@ -109,6 +109,36 @@ function MEInterface:importFromME(itemName, amount, toSide, toSlot, damage)
     )
     
     return transferred
+end
+
+-- Получение списка доступных предметов в ME
+function MEInterface:getAvailableItems()
+    local items = {}
+    local inventorySize = self.transposer.getInventorySize(self.meSide)
+    
+    if not inventorySize then
+        return items
+    end
+    
+    for slot = 1, inventorySize do
+        local stack = self.transposer.getStackInSlot(self.meSide, slot)
+        if stack then
+            local key = stack.name .. ":" .. stack.damage
+            if not items[key] then
+                items[key] = {
+                    name = stack.name,
+                    label = stack.label,
+                    damage = stack.damage,
+                    size = 0,
+                    slots = {}
+                }
+            end
+            items[key].size = items[key].size + stack.size
+            table.insert(items[key].slots, slot)
+        end
+    end
+    
+    return items
 end
 
 return MEInterface 

@@ -1,7 +1,7 @@
 -- Модуль интерфейса для сервера управления вакуумными реакторами
 local component = require("component")
 local term = require("term")
-local config = require("vacuum_config")
+local config = require("../vacuum_config")
 local gpu = component.gpu
 
 local VacuumUI = {}
@@ -84,7 +84,7 @@ function VacuumUI:drawFooter()
     gpu.setBackground(config.UI.COLORS.BACKGROUND)
     gpu.setForeground(config.UI.COLORS.BORDER)
     
-    local helpText = "[↑↓] Прокрутка | [Enter] Выбор | [S] Старт | [T] Стоп | [E] Сброс аварии | [R] Обновить | [Q] Выход"
+    local helpText = "[↑↓] Прокрутка | [S] Старт | [T] Стоп | [E] Сброс аварии | [M] Обслуживание | [R] Обновить | [Q] Выход"
     local helpX = math.floor((self.width - #helpText) / 2)
     gpu.set(helpX, self.height, helpText)
 end
@@ -201,21 +201,36 @@ function VacuumUI:drawReactorPanel(reactor, y, isSelected)
     
     -- Третья строка - компоненты
     if reactor.coolantStatus then
-        gpu.set(4, y + 3, string.format("Охлаждение: %d/%d", 
+        local coolantText = string.format("Охлаждение: %d/%d", 
             reactor.coolantStatus.total - reactor.coolantStatus.damaged,
-            reactor.coolantStatus.total))
+            reactor.coolantStatus.total)
+        if reactor.coolantStatus.damaged > 0 then
+            gpu.setForeground(config.UI.COLORS.STATUS_WARNING)
+        else
+            gpu.setForeground(config.UI.COLORS.FOREGROUND)
+        end
+        gpu.set(4, y + 3, coolantText)
     end
     
     if reactor.fuelStatus then
-        gpu.set(30, y + 3, string.format("Топливо: %d/%d", 
+        local fuelText = string.format("Топливо: %d/%d", 
             reactor.fuelStatus.total - reactor.fuelStatus.depleted,
-            reactor.fuelStatus.total))
+            reactor.fuelStatus.total)
+        if reactor.fuelStatus.depleted > 0 then
+            gpu.setForeground(config.UI.COLORS.STATUS_WARNING)
+        else
+            gpu.setForeground(config.UI.COLORS.FOREGROUND)
+        end
+        gpu.set(30, y + 3, fuelText)
     end
     
-    -- Аварийный режим
+    -- Специальные режимы
     if reactor.emergencyMode then
         gpu.setForeground(config.UI.COLORS.EMERGENCY)
         gpu.set(tempX, y + 3, string.format("АВАРИЙНОЕ ОХЛАЖДЕНИЕ: %ds", reactor.emergencyCooldown or 0))
+    elseif reactor.maintenanceMode then
+        gpu.setForeground(config.UI.COLORS.STATUS_WARNING)
+        gpu.set(tempX, y + 3, "ТЕХНИЧЕСКОЕ ОБСЛУЖИВАНИЕ")
     end
     
     -- Восстановление фона
@@ -229,6 +244,7 @@ function VacuumUI:getStatusStyle(status)
         STOPPED = {config.UI.COLORS.STATUS_ERROR, config.UI.SYMBOLS.ERROR},
         WARNING = {config.UI.COLORS.STATUS_WARNING, config.UI.SYMBOLS.WARNING},
         EMERGENCY = {config.UI.COLORS.EMERGENCY, config.UI.SYMBOLS.EMERGENCY},
+        MAINTENANCE = {config.UI.COLORS.STATUS_WARNING, "⚙"},
         OFFLINE = {config.UI.COLORS.STATUS_OFFLINE, config.UI.SYMBOLS.OFFLINE}
     }
     

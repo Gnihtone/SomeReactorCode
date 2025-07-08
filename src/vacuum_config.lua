@@ -18,7 +18,9 @@ config.REACTOR = {
     WARNING_TEMP_PERCENT = 0.7,  -- Предупреждение о температуре (70%)
     COOLANT_MIN_DAMAGE = 0.9,  -- Минимальный уровень повреждения coolant cell (90%)
     EMERGENCY_COOLDOWN_TIME = 60,  -- Время аварийного охлаждения (секунды)
-    MAX_REACTOR_NAME_LENGTH = 20  -- Максимальная длина имени реактора
+    MAX_REACTOR_NAME_LENGTH = 20,  -- Максимальная длина имени реактора
+    AUTO_MAINTENANCE = true,  -- Автоматическое обслуживание
+    MAINTENANCE_CHECK_INTERVAL = 10  -- Интервал проверки необходимости обслуживания (секунды)
 }
 
 -- Предметы для управления реактором
@@ -110,8 +112,8 @@ config.COMMANDS = {
 
 -- Настройки сторон transposer
 config.SIDES = {
-    REACTOR = 2,  -- back
-    ME_SYSTEM = 3,  -- front
+    REACTOR = 3,  -- front
+    ME_SYSTEM = 2,  -- back
     BACKUP_STORAGE = 0  -- bottom (для аварийного хранения)
 }
 
