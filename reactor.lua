@@ -247,9 +247,9 @@ function Reactor:updateStats()
     if self.running then
         local euOutput = self.reactor.getReactorEUOutput()
         self.stats.lastEUOutput = euOutput
-        self.stats.totalEUProduced = self.stats.totalEUProduced + euOutput * config.UPDATE_INTERVAL
+        self.stats.totalEUProduced = self.stats.totalEUProduced + euOutput * config.UPDATE_INTERVAL * config.TICKS_PER_SECOND
         self.stats.runtime = self.stats.runtime + config.UPDATE_INTERVAL
-        self.stats.efficiency = self.reactor.getReactorEUOutput() / self.reactor.getMaxEUOutput()
+        self.stats.efficiency = 0.5
     end
 end
 
