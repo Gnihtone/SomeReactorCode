@@ -263,6 +263,12 @@ function VacuumServer:handleUserInput(key, code)
         if reactor then
             self:sendReactorCommand(reactor.name, config.COMMANDS.START)
         end
+    elseif key == keyboard.keys.g then
+        -- Остановка всех реакторов
+        self:sendReactorCommandToAll(config.COMMANDS.STOP)
+    elseif key == keyboard.keys.p then
+        -- Запуск всех реакторов
+        self:sendReactorCommandToAll(config.COMMANDS.START)
     elseif key == keyboard.keys.t then
         -- Остановка выбранного реактора
         local reactor = self.ui:getSelectedReactor()

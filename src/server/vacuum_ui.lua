@@ -86,7 +86,7 @@ function VacuumUI:drawFooter()
     gpu.setBackground(config.UI.COLORS.BACKGROUND)
     gpu.setForeground(config.UI.COLORS.BORDER)
     
-    local helpText = "[↑↓] Прокрутка | [S] Старт | [T] Стоп | [E] Сброс аварии | [M] Обслуживание | [R] Обновить | [Q] Выход"
+    local helpText = "[↑↓] Прокрутка | [S] Старт | [T] Стоп | [E] Сброс аварии | [M] Обслуживание | [R] Обновить | [Q] Выход | [G] Остановка всех | [P] Запуск всех"
     local helpX = math.floor((self.width - #helpText) / 2)
     gpu.set(helpX, self.height, helpText)
 end
@@ -383,19 +383,12 @@ end
 
 -- Прокрутка вверх
 function VacuumUI:scrollUp()
-    if self.scrollOffset > 0 then
-        self.scrollOffset = self.scrollOffset - 1
-        self:drawReactors()
-    end
+    self:selectReactor(self.selectedReactor - 1)
 end
 
 -- Прокрутка вниз
 function VacuumUI:scrollDown()
-    local maxOffset = math.max(0, #self.reactors - self.maxReactorsDisplay)
-    if self.scrollOffset < maxOffset then
-        self.scrollOffset = self.scrollOffset + 1
-        self:drawReactors()
-    end
+    self:selectReactor(self.selectedReactor + 1)
 end
 
 -- Выбор реактора
