@@ -106,6 +106,7 @@ function VacuumUI:updateReactors(reactorList)
         end
     end
     
+    self:drawStaticElements()
     self:drawReactors()
     self:drawStats()
 end
