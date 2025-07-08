@@ -1,11 +1,13 @@
 -- Главный сервер управления вакуумными реакторами
+package.path = package.path .. ";../?.lua"
+
 local component = require("component")
 local event = require("event")
 local thread = require("thread")
 local keyboard = require("keyboard")
 local computer = require("computer")
-local config = require("../vacuum_config")
-local Protocol = require("../vacuum_protocol")
+local config = require("vacuum_config")
+local Protocol = require("vacuum_protocol")
 local VacuumUI = require("vacuum_ui")
 
 -- Класс сервера

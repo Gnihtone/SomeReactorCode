@@ -1,8 +1,10 @@
 -- Модуль управления вакуумным реактором
+package.path = package.path .. ";../?.lua"
+
 local component = require("component")
 local computer = require("computer")
-local config = require("../vacuum_config")
-local MEInterface = require("../me_interface")
+local config = require("vacuum_config")
+local MEInterface = require("me_interface")
 
 -- Класс реактора
 local VacuumReactor = {}
@@ -611,6 +613,7 @@ end
 
 -- Логирование
 function VacuumReactor:log(level, message)
+    print(level, message)
     table.insert(self.logs, {
         time = os.date("%H:%M:%S"),
         level = level,

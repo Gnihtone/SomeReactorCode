@@ -1,7 +1,9 @@
 -- Модуль интерфейса для сервера управления вакуумными реакторами
+package.path = package.path .. ";../?.lua"
+
 local component = require("component")
 local term = require("term")
-local config = require("../vacuum_config")
+local config = require("vacuum_config")
 local gpu = component.gpu
 
 local VacuumUI = {}

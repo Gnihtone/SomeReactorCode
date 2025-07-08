@@ -1,10 +1,12 @@
 -- Менеджер клиента для вакуумных реакторов
+package.path = package.path .. ";../?.lua"
+
 local component = require("component")
 local event = require("event")
 local thread = require("thread")
 local computer = require("computer")
-local config = require("../vacuum_config")
-local Protocol = require("../vacuum_protocol")
+local config = require("vacuum_config")
+local Protocol = require("vacuum_protocol")
 local VacuumReactor = require("vacuum_reactor")
 
 -- Класс менеджера клиента
