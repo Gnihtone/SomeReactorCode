@@ -52,10 +52,25 @@ config.ITEMS = {
         "gregtech:gt.Quad_Naquadahcell",
         "gregtech:gt.Quad_MNqCell",
         "bartworks:gt.Quad_Tiberiumcell",
+        "bartworks:gt.Core_Reactor_Cell",
         "GoodGenerator:rodLiquidPlutonium4",
         "GoodGenerator:rodLiquidUranium4",
         "GoodGenerator:rodCompressedPlutonium4",
         "GoodGenerator:rodCompressedUranium4",
+    },
+
+    -- Истощенные топливные стержни
+    DEPLETED_FUEL_RODS = {
+        "IC2:reactorUraniumQuaddepleted",
+        "IC2:reactorMOXQuaddepleted",
+        "gregtech:gt.Quad_NaquadahcellDep",
+        "gregtech:gt.Quad_MNqCellDep",
+        "bartworks:gt.Quad_TiberiumcellDep",
+        "bartworks:gt.Core_Reactor_CellDep",
+        "GoodGenerator:rodLiquidPlutoniumDepleted4",
+        "GoodGenerator:rodLiquidUraniumDepleted4",
+        "GoodGenerator:rodCompressedPlutoniumDepleted4",
+        "GoodGenerator:rodCompressedUraniumDepleted4",
     }
 }
 

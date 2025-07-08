@@ -300,7 +300,7 @@ function VacuumServer:log(level, message)
     self.ui:addLog(os.time(), level, message, nil)
     
     -- Вывод в консоль для отладки
-    print(string.format("[%s][%s] %s", os.date("%H:%M:%S"), level, message))
+    -- print(string.format("[%s][%s] %s", os.date("%H:%M:%S"), level, message))
 end
 
 -- Основной цикл работы

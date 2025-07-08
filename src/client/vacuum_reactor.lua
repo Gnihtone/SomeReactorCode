@@ -201,6 +201,16 @@ function VacuumReactor:isCoolantCell(itemName)
     return false
 end
 
+-- Проверка, является ли предмет истощенным стержнем
+function VacuumReactor:isDepletedRod(itemName)
+    for _, rodType in ipairs(config.ITEMS.DEPLETED_FUEL_RODS) do
+        if itemName == rodType then
+            return true
+        end
+    end
+    return false
+end
+
 -- Проверка на истощенные стержни
 function VacuumReactor:checkDepletedRods()
     local depletedRods = {}
@@ -208,7 +218,7 @@ function VacuumReactor:checkDepletedRods()
     
     for slot = 1, inventorySize do
         local stack = self.transposer.getStackInSlot(config.SIDES.REACTOR, slot)
-        if stack and stack.name:find("depleted") then
+        if stack and self:isDepletedRod(stack.name) then
             table.insert(depletedRods, {
                 slot = slot,
                 stack = stack
@@ -244,21 +254,8 @@ function VacuumReactor:replaceCoolantCells(damagedCells)
                     self:log("DEBUG", "Заменена coolant cell в слоте " .. cell.slot)
                 end
             else
-                -- Если нет сохраненной схемы, пытаемся найти подходящую cell
-                local replaced = false
-                for _, cellType in ipairs(config.ITEMS.COOLANT_CELLS) do
-                    local pulled = self:pullFromME(cellType, 1, cell.slot, 0)
-                    if pulled > 0 then
-                        replaced = true
-                        self:log("DEBUG", "Установлена новая coolant cell в слот " .. cell.slot)
-                        break
-                    end
-                end
-                
-                if not replaced then
-                    success = false
-                    self:log("ERROR", "Не удалось найти замену для coolant cell в слоте " .. cell.slot)
-                end
+                self:log("ERROR", "Нет сохранённой схемы для реактора")
+                success = false
             end
         else
             success = false
@@ -286,7 +283,7 @@ function VacuumReactor:replaceDepletedRods(depletedRods)
             -- Попытка получить новый стержень из ME системы
             local originalRod = self.savedLayout[rod.slot]
             if originalRod then
-                local pulled = self:pullFromME(originalRod.name, originalRod.size, rod.slot, originalRod.damage)
+                local pulled = self:pullFromME(originalRod.name, originalRod.size, rod.slot, nil)
                 if pulled < originalRod.size then
                     success = false
                     self:log("ERROR", "Не удалось получить стержень для слота " .. rod.slot)
@@ -294,21 +291,8 @@ function VacuumReactor:replaceDepletedRods(depletedRods)
                     self:log("DEBUG", "Заменен стержень в слоте " .. rod.slot)
                 end
             else
-                -- Если нет сохраненной схемы, пытаемся найти подходящий стержень
-                local replaced = false
-                for _, fuelType in ipairs(config.ITEMS.FUEL_RODS) do
-                    local pulled = self:pullFromME(fuelType, 1, rod.slot, 0)
-                    if pulled > 0 then
-                        replaced = true
-                        self:log("DEBUG", "Установлен новый стержень в слот " .. rod.slot)
-                        break
-                    end
-                end
-                
-                if not replaced then
-                    success = false
-                    self:log("ERROR", "Не удалось найти замену для стержня в слоте " .. rod.slot)
-                end
+                self:log("ERROR", "Нет сохранённой схемы для реактора")
+                success = false
             end
         else
             success = false
@@ -326,7 +310,7 @@ function VacuumReactor:pullFromME(itemName, amount, targetSlot, damage)
         amount, 
         config.SIDES.REACTOR, 
         targetSlot,
-        damage or 0
+        damage
     )
     
     return transferred
@@ -583,7 +567,7 @@ function VacuumReactor:analyzeComponents()
                 if stack.name == fuelType then
                     fuelCount = fuelCount + 1
                     break
-                elseif stack.name:find("depleted") then
+                elseif self:isDepletedRod(stack.name) then
                     depletedFuel = depletedFuel + 1
                     break
                 end

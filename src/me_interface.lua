@@ -71,7 +71,9 @@ function MEInterface:requestItem(itemName, amount, damage)
     end
     
     -- Альтернативный метод - поиск в экспортных слотах ME Interface
-    local slot, stack = self:findItemInME(itemName, damage, damage)
+    local minDamage = damage or 0
+    local maxDamage = damage or 1000000000
+    local slot, stack = self:findItemInME(itemName, minDamage, maxDamage)
     if slot and stack then
         return slot, math.min(stack.size, amount)
     end
