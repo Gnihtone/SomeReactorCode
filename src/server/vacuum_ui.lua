@@ -202,7 +202,7 @@ function VacuumUI:drawReactorPanel(reactor, y, isSelected)
     gpu.set(30, y + 2, string.format("Эфф: %.1f%%", (reactor.efficiency or 0) * 100))
     gpu.set(tempX, y + 2, string.format("Всего: %s", self:formatEnergy(reactor.totalEU or 0)))
     
-    -- Третья строка - компоненты
+    -- Третья строка - компоненты и время работы
     if reactor.coolantStatus then
         local coolantText = string.format("Охлаждение: %d/%d", 
             reactor.coolantStatus.total - reactor.coolantStatus.damaged,
@@ -227,13 +227,22 @@ function VacuumUI:drawReactorPanel(reactor, y, isSelected)
         gpu.set(30, y + 3, fuelText)
     end
     
-    -- Специальные режимы
+    -- Время работы
+    if reactor.runningTime then
+        gpu.setForeground(config.UI.COLORS.FOREGROUND)
+        gpu.set(tempX, y + 3, string.format("Время работы: %s", self:formatTime(reactor.runningTime)))
+    end
+    
+    -- Специальные режимы (четвертая строка)
     if reactor.emergencyMode then
         gpu.setForeground(config.UI.COLORS.EMERGENCY)
-        gpu.set(tempX, y + 3, string.format("АВАРИЙНОЕ ОХЛАЖДЕНИЕ: %ds", reactor.emergencyCooldown or 0))
+        gpu.set(4, y + 4, string.format("АВАРИЙНОЕ ОХЛАЖДЕНИЕ: %ds", reactor.emergencyCooldown or 0))
     elseif reactor.maintenanceMode then
         gpu.setForeground(config.UI.COLORS.STATUS_WARNING)
-        gpu.set(tempX, y + 3, "ТЕХНИЧЕСКОЕ ОБСЛУЖИВАНИЕ")
+        gpu.set(4, y + 4, "ТЕХНИЧЕСКОЕ ОБСЛУЖИВАНИЕ")
+    elseif reactor.pausedForEnergy then
+        gpu.setForeground(config.UI.COLORS.STATUS_WARNING)
+        gpu.set(4, y + 4, "ПРИОСТАНОВЛЕН: Энергохранилище переполнено")
     end
     
     -- Восстановление фона
@@ -248,7 +257,8 @@ function VacuumUI:getStatusStyle(status)
         WARNING = {config.UI.COLORS.STATUS_WARNING, config.UI.SYMBOLS.WARNING},
         EMERGENCY = {config.UI.COLORS.EMERGENCY, config.UI.SYMBOLS.EMERGENCY},
         MAINTENANCE = {config.UI.COLORS.STATUS_WARNING, "⚙"},
-        OFFLINE = {config.UI.COLORS.STATUS_OFFLINE, config.UI.SYMBOLS.OFFLINE}
+        OFFLINE = {config.UI.COLORS.STATUS_OFFLINE, config.UI.SYMBOLS.OFFLINE},
+        PAUSED_ENERGY = {config.UI.COLORS.STATUS_WARNING, "⏸"}
     }
     
     local style = styles[status] or styles.OFFLINE
@@ -378,6 +388,23 @@ function VacuumUI:formatEnergy(eu)
         return string.format("%.2f KEU", eu / 1e3)
     else
         return string.format("%.0f EU", eu)
+    end
+end
+
+-- Форматирование времени
+function VacuumUI:formatTime(seconds)
+    if not seconds then return "0s" end
+    
+    local hours = math.floor(seconds / 3600)
+    local minutes = math.floor((seconds % 3600) / 60)
+    local secs = math.floor(seconds % 60)
+    
+    if hours > 0 then
+        return string.format("%dч %dм %dс", hours, minutes, secs)
+    elseif minutes > 0 then
+        return string.format("%dм %dс", minutes, secs)
+    else
+        return string.format("%dс", secs)
     end
 end
 

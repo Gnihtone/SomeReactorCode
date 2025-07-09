@@ -13,18 +13,19 @@ local VacuumReactor = require("vacuum_reactor")
 local VacuumClientManager = {}
 VacuumClientManager.__index = VacuumClientManager
 
-function VacuumClientManager:new(reactorName)
+function VacuumClientManager:new(clientName)
     local self = setmetatable({}, VacuumClientManager)
     
     -- Основные параметры
-    self.name = reactorName or "Reactor-" .. computer.address():sub(1, 8)
+    self.clientName = clientName or "Client-" .. computer.address():sub(1, 8)
     self.running = false
     self.serverAddress = nil
     self.lastHeartbeat = 0
     
     -- Компоненты
     self.protocol = nil
-    self.reactor = nil
+    self.reactors = {}  -- Таблица реакторов: reactorId -> VacuumReactor
+    self.reactorAddresses = {}  -- Адреса reactor_chamber компонентов
     
     -- Потоки
     self.messageThread = nil
@@ -35,15 +36,42 @@ end
 
 -- Инициализация менеджера
 function VacuumClientManager:init()
-    print("Инициализация клиента реактора: " .. self.name)
+    print("Инициализация клиента: " .. self.clientName)
     
     -- Инициализация протокола
     self.protocol = Protocol:new(false)
     
-    -- Инициализация реактора
-    self.reactor = VacuumReactor:new(self.name)
-    if not self.reactor:init() then
-        error("Не удалось инициализировать реактор!")
+    -- Поиск всех реакторов
+    self:findAllReactors()
+    
+    if #self.reactorAddresses == 0 then
+        error("Не найдено ни одного реактора!")
+    end
+    
+    print("Найдено реакторов: " .. #self.reactorAddresses)
+    
+    -- Инициализация каждого реактора
+    for i, reactorAddress in ipairs(self.reactorAddresses) do
+        local reactorId = self.clientName .. "-R" .. i
+        local reactor = VacuumReactor:new(reactorId)
+        
+        -- Переопределяем компоненты для конкретного реактора
+        reactor.reactor = component.proxy(reactorAddress)
+        
+        -- Находим ближайший transposer к реактору
+        local transposerAddress = self:findNearestTransposer(reactorAddress)
+        if transposerAddress then
+            reactor.transposer = component.proxy(transposerAddress)
+            
+            -- Инициализируем ME Interface
+            local MEInterface = require("me_interface")
+            reactor.meInterface = MEInterface:new(transposerAddress)
+            
+            self.reactors[reactorId] = reactor
+            print("Инициализирован реактор: " .. reactorId)
+        else
+            print("ВНИМАНИЕ: Не найден transposer для реактора " .. reactorId)
+        end
     end
     
     -- Настройка обработчиков сообщений
@@ -54,6 +82,35 @@ function VacuumClientManager:init()
     
     print("Инициализация завершена")
     return true
+end
+
+-- Поиск всех реакторов в системе
+function VacuumClientManager:findAllReactors()
+    self.reactorAddresses = {}
+    
+    for address, componentType in component.list("reactor_chamber") do
+        table.insert(self.reactorAddresses, address)
+    end
+end
+
+-- Поиск ближайшего transposer к реактору
+function VacuumClientManager:findNearestTransposer(reactorAddress)
+    -- В простейшем случае берем первый найденный transposer
+    -- В реальной системе может потребоваться более сложная логика
+    for address, componentType in component.list("transposer") do
+        -- Проверяем, есть ли reactor_chamber среди соседних блоков
+        local transposer = component.proxy(address)
+        for side = 0, 5 do
+            local inventoryName = transposer.getInventoryName(side)
+            if inventoryName and inventoryName:find("reactor") then
+                return address
+            end
+        end
+    end
+    
+    -- Если не нашли по соседству, возвращаем первый доступный
+    local firstTransposer = component.list("transposer")()
+    return firstTransposer
 end
 
 -- Настройка обработчиков сообщений
@@ -68,7 +125,7 @@ function VacuumClientManager:setupHandlers()
     
     -- Обработка команд от сервера
     self.protocol:registerHandler(config.MESSAGES.COMMAND, function(data, from)
-        self:handleServerCommand(data.command, data.parameters)
+        self:handleServerCommand(data.command, data.parameters, data.reactorId)
     end)
     
     -- Обновление конфигурации
@@ -81,14 +138,25 @@ end
 function VacuumClientManager:registerToServer()
     self:log("INFO", "Поиск сервера...")
     
+    -- Подготовка списка реакторов
+    local reactorList = {}
+    for reactorId, reactor in pairs(self.reactors) do
+        table.insert(reactorList, {
+            id = reactorId,
+            name = reactor.name
+        })
+    end
+    
     -- Отправка широковещательного сообщения о регистрации
     self.protocol:send("broadcast", config.MESSAGES.REGISTER, {
-        name = self.name,
-        type = "vacuum_reactor",
+        name = self.clientName,
+        type = "multi_reactor_client",
+        reactors = reactorList,
         capabilities = {
             emergency_cooling = true,
             remote_control = true,
-            auto_maintenance = true
+            auto_maintenance = true,
+            multi_reactor = true
         }
     })
     
@@ -104,21 +172,36 @@ function VacuumClientManager:registerToServer()
 end
 
 -- Обработка команд от сервера
-function VacuumClientManager:handleServerCommand(command, parameters)
-    if command == config.COMMANDS.START then
-        self.reactor:startReactor()
-    elseif command == config.COMMANDS.STOP then
-        self.reactor:stopReactor()
-    elseif command == config.COMMANDS.EMERGENCY_STOP then
-        self.reactor:emergencyStop()
-    elseif command == config.COMMANDS.CLEAR_EMERGENCY then
-        self.reactor:clearEmergency()
-    elseif command == "DISCOVER" then
-        -- Ответ на обнаружение
+function VacuumClientManager:handleServerCommand(command, parameters, reactorId)
+    -- Если указан конкретный реактор
+    if reactorId and self.reactors[reactorId] then
+        local reactor = self.reactors[reactorId]
+        
+        if command == config.COMMANDS.START then
+            reactor:startReactor()
+        elseif command == config.COMMANDS.STOP then
+            reactor:stopReactor()
+        elseif command == config.COMMANDS.EMERGENCY_STOP then
+            reactor:emergencyStop()
+        elseif command == config.COMMANDS.CLEAR_EMERGENCY then
+            reactor:clearEmergency()
+        elseif command == config.COMMANDS.PAUSE_FOR_ENERGY_FULL then
+            reactor:pauseForEnergyFull()
+        elseif command == config.COMMANDS.RESUME_FROM_ENERGY_PAUSE then
+            reactor:resumeFromEnergyPause()
+        elseif command == "FORCE_MAINTENANCE" then
+            reactor:performMaintenance()
+        end
+    elseif not reactorId then
+        -- Команда для всех реакторов
+        for id, reactor in pairs(self.reactors) do
+            self:handleServerCommand(command, parameters, id)
+        end
+    end
+    
+    -- Общие команды
+    if command == "DISCOVER" then
         self:registerToServer()
-    elseif command == "FORCE_MAINTENANCE" then
-        -- Принудительное обслуживание
-        self.reactor:performMaintenance()
     end
 end
 
@@ -128,24 +211,36 @@ function VacuumClientManager:sendStatusUpdate()
         return
     end
     
-    local reactorData = self.reactor:getStatusData()
-    local data = self.protocol:formatReactorData(reactorData)
-    self.protocol:send(self.serverAddress, config.MESSAGES.STATUS_UPDATE, data)
+    -- Собираем данные всех реакторов
+    local reactorsData = {}
+    for reactorId, reactor in pairs(self.reactors) do
+        local reactorData = reactor:getStatusData()
+        reactorData.reactorId = reactorId  -- Добавляем ID реактора
+        table.insert(reactorsData, self.protocol:formatReactorData(reactorData))
+    end
+    
+    self.protocol:send(self.serverAddress, config.MESSAGES.STATUS_UPDATE, {
+        clientName = self.clientName,
+        reactors = reactorsData
+    })
+    
     self.lastHeartbeat = computer.uptime()
 end
 
 -- Отправка лога на сервер
-function VacuumClientManager:sendLog(level, message)
+function VacuumClientManager:sendLog(level, message, reactorId)
     if self.serverAddress then
-        local logData = self.protocol:formatLogMessage(level, message, self.name)
+        local logData = self.protocol:formatLogMessage(level, message, reactorId or self.clientName)
         self.protocol:send(self.serverAddress, config.MESSAGES.LOG, logData)
     end
 end
 
 -- Отправка аварийного уведомления
-function VacuumClientManager:sendEmergencyAlert(reason, data)
+function VacuumClientManager:sendEmergencyAlert(reactorId, reason, data)
     if self.serverAddress then
         self.protocol:send(self.serverAddress, config.MESSAGES.EMERGENCY, {
+            reactorId = reactorId,
+            clientName = self.clientName,
             reason = reason,
             temperature = data.temperature,
             tempPercent = data.tempPercent,
@@ -155,12 +250,13 @@ function VacuumClientManager:sendEmergencyAlert(reason, data)
 end
 
 -- Логирование
-function VacuumClientManager:log(level, message)
+function VacuumClientManager:log(level, message, reactorId)
     local timestamp = os.date("%H:%M:%S")
-    print(string.format("[%s][%s] %s", timestamp, level, message))
+    local prefix = reactorId and string.format("[%s][%s][%s]", timestamp, level, reactorId) or string.format("[%s][%s]", timestamp, level)
+    print(prefix .. " " .. message)
     
     -- Отправка на сервер
-    self:sendLog(level, message)
+    self:sendLog(level, message, reactorId)
 end
 
 -- Основной цикл работы
@@ -178,28 +274,30 @@ function VacuumClientManager:run()
         end
     end)
     
-    -- Основной поток управления реактором
+    -- Основной поток управления реакторами
     self.mainThread = thread.create(function()
         while self.running do
             local success, err = pcall(function()
-                -- Обновление состояния реактора
-                self.reactor:update()
-                
-                -- Проверка на аварийные ситуации
-                local status = self.reactor:getStatusData()
-                if status.emergencyTriggered then
-                    self:sendEmergencyAlert(status.emergencyReason, status)
+                -- Обновление состояния каждого реактора
+                for reactorId, reactor in pairs(self.reactors) do
+                    reactor:update()
+                    
+                    -- Проверка на аварийные ситуации
+                    local status = reactor:getStatusData()
+                    if status.emergencyTriggered then
+                        self:sendEmergencyAlert(reactorId, status.emergencyReason, status)
+                    end
+                    
+                    -- Сбор логов от реактора
+                    local logs = reactor:getAndClearLogs()
+                    for _, logEntry in ipairs(logs) do
+                        self:log(logEntry.level, logEntry.message, reactorId)
+                    end
                 end
                 
                 -- Отправка данных на сервер
                 if computer.uptime() - self.lastHeartbeat >= config.NETWORK.HEARTBEAT_INTERVAL then
                     self:sendStatusUpdate()
-                end
-                
-                -- Сбор логов от реактора
-                local logs = self.reactor:getAndClearLogs()
-                for _, logEntry in ipairs(logs) do
-                    self:log(logEntry.level, logEntry.message)
                 end
             end)
             
@@ -220,7 +318,7 @@ function VacuumClientManager:run()
     -- Отправка уведомления об отключении
     if self.serverAddress then
         self.protocol:send(self.serverAddress, config.MESSAGES.UNREGISTER, {
-            name = self.name
+            name = self.clientName
         })
     end
     
@@ -232,9 +330,11 @@ function VacuumClientManager:run()
         self.mainThread:kill()
     end
     
-    -- Закрытие протокола
+    -- Закрытие протокола и остановка реакторов
     self.protocol:close()
-    self.reactor:stopReactor()
+    for _, reactor in pairs(self.reactors) do
+        reactor:stopReactor()
+    end
 end
 
 -- Остановка менеджера
@@ -244,9 +344,9 @@ end
 
 -- Точка входа
 local args = {...}
-local reactorName = args[1] or nil
+local clientName = args[1] or nil
 
-local manager = VacuumClientManager:new(reactorName)
+local manager = VacuumClientManager:new(clientName)
 
 -- Обработка сигнала прерывания
 event.listen("interrupted", function()

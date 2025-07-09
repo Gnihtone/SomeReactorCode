@@ -46,7 +46,9 @@ function VacuumReactor:new(name)
         uptime = 0,
         totalEU = 0,
         emergencyTriggered = false,
-        emergencyReason = nil
+        emergencyReason = nil,
+        runningTime = 0,  -- Время работы в секундах (только когда реактор активен)
+        pausedForEnergy = false  -- Приостановлен из-за переполнения энергохранилища
     }
     
     -- Сохраненная схема и логи
@@ -91,6 +93,11 @@ function VacuumReactor:startReactor()
         return false
     end
     
+    if self.status.pausedForEnergy then
+        self:log("WARNING", "Реактор приостановлен из-за переполнения энергохранилища")
+        return false
+    end
+    
     -- Сначала выполняем обслуживание
     if not self:performMaintenance() then
         self:log("WARNING", "Обслуживание не завершено, но реактор будет запущен")
@@ -120,14 +127,14 @@ function VacuumReactor:stopReactor()
 end
 
 function VacuumReactor:updateCurrentLayout()
-    self.currentLayout = {}
-    local inventorySize = self.transposer.getInventorySize(config.SIDES.REACTOR)
-    for slot = 1, inventorySize do
-        local stack = self.transposer.getStackInSlot(config.SIDES.REACTOR, slot)
-        if stack then
-            self.currentLayout[slot] = stack
-        end
-    end
+    self.currentLayout = self.transposer.getAllStacks(config.SIDES.REACTOR)
+    -- local inventorySize = self.transposer.getInventorySize(config.SIDES.REACTOR)
+    -- for slot = 1, inventorySize do
+    --     local stack = self.transposer.getStackInSlot(config.SIDES.REACTOR, slot)
+    --     if stack then
+    --         self.currentLayout[slot] = stack
+    --     end
+    -- end
 end
 
 -- Выполнение технического обслуживания
@@ -491,6 +498,8 @@ function VacuumReactor:update()
         self.status.status = "EMERGENCY"
     elseif self.maintenanceMode then
         self.status.status = "MAINTENANCE"
+    elseif self.status.pausedForEnergy then
+        self.status.status = "PAUSED_ENERGY"
     elseif self.status.running then
         if self.status.tempPercent >= config.REACTOR.WARNING_TEMP_PERCENT then
             self.status.status = "WARNING"
@@ -509,8 +518,17 @@ function VacuumReactor:update()
         local currentTime = computer.uptime()
         local deltaTime = currentTime - self.lastUpdateTime
         self.status.uptime = currentTime - self.startTime
+        
+        -- Обновляем время работы (только когда реактор действительно работает)
+        -- Добавляем deltaTime к общему времени работы вместо пересчета всей сессии
+        self.status.runningTime = self.status.runningTime + deltaTime
+        
         self.status.totalEU = self.status.totalEU + (self.status.euOutput * deltaTime * 20)
         self.lastUpdateTime = currentTime
+    else
+        -- Обновляем только общее время работы системы
+        self.status.uptime = computer.uptime() - self.startTime
+        self.lastUpdateTime = computer.uptime()
     end
     
     -- Проверка критической температуры
@@ -626,6 +644,37 @@ function VacuumReactor:getAndClearLogs()
     local logs = self.logs
     self.logs = {}
     return logs
+end
+
+-- Приостановка реактора из-за переполнения энергохранилища
+function VacuumReactor:pauseForEnergyFull()
+    if not self.running then
+        return
+    end
+    
+    self.reactor.setActive(false)
+    self.running = false
+    self.status.running = false
+    self.status.pausedForEnergy = true
+    
+    self:log("WARNING", "Реактор приостановлен из-за переполнения энергохранилища")
+end
+
+-- Возобновление работы после освобождения энергохранилища
+function VacuumReactor:resumeFromEnergyPause()
+    if not self.status.pausedForEnergy then
+        return
+    end
+    
+    self.status.pausedForEnergy = false
+    
+    -- Проверяем, можем ли запустить реактор
+    if not self.emergencyMode and not self.maintenanceMode then
+        self.reactor.setActive(true)
+        self.running = true
+        self.status.running = true
+        self:log("INFO", "Реактор возобновил работу после освобождения энергохранилища")
+    end
 end
 
 return VacuumReactor 

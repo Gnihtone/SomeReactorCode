@@ -107,6 +107,7 @@ end
 -- Форматирование данных о реакторе для передачи
 function Protocol:formatReactorData(reactor)
     return {
+        reactorId = reactor.reactorId,  -- ID реактора в рамках клиента
         name = reactor.name,
         status = reactor.status,
         temperature = reactor.temperature,
@@ -122,7 +123,23 @@ function Protocol:formatReactorData(reactor)
         coolantStatus = reactor.coolantStatus,
         fuelStatus = reactor.fuelStatus,
         uptime = reactor.uptime,
-        totalEU = reactor.totalEU
+        totalEU = reactor.totalEU,
+        runningTime = reactor.runningTime,  -- Время работы в секундах
+        pausedForEnergy = reactor.pausedForEnergy  -- Приостановлен из-за энергии
+    }
+end
+
+-- Форматирование данных о энергохранилище
+function Protocol:formatEnergyStorageData(storage)
+    return {
+        id = storage.id,
+        type = storage.type,
+        stored = storage.stored,
+        capacity = storage.capacity,
+        fillPercent = storage.fillPercent,
+        inputRate = storage.inputRate,
+        outputRate = storage.outputRate,
+        location = storage.location
     }
 end
 
@@ -161,10 +178,11 @@ function Protocol:sendAck(address, originalMessageType)
 end
 
 -- Отправка команды реактору
-function Protocol:sendCommand(address, command, parameters)
+function Protocol:sendCommand(address, command, parameters, reactorId)
     return self:send(address, config.MESSAGES.COMMAND, {
         command = command,
-        parameters = parameters or {}
+        parameters = parameters or {},
+        reactorId = reactorId  -- Опциональный ID реактора
     })
 end
 

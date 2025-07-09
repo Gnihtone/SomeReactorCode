@@ -109,6 +109,7 @@ config.MESSAGES = {
     STATUS_UPDATE = "STATUS_UPDATE",  -- Обновление статуса реактора
     EMERGENCY = "EMERGENCY",  -- Аварийная ситуация
     LOG = "LOG",  -- Лог-сообщение
+    ENERGY_STORAGE_UPDATE = "ENERGY_STORAGE_UPDATE",  -- Обновление состояния энергохранилищ
     
     -- От сервера к клиенту
     ACK = "ACK",  -- Подтверждение
@@ -122,7 +123,9 @@ config.COMMANDS = {
     STOP = "STOP",
     EMERGENCY_STOP = "EMERGENCY_STOP",
     CLEAR_EMERGENCY = "CLEAR_EMERGENCY",
-    UPDATE_CONFIG = "UPDATE_CONFIG"
+    UPDATE_CONFIG = "UPDATE_CONFIG",
+    PAUSE_FOR_ENERGY_FULL = "PAUSE_FOR_ENERGY_FULL",  -- Пауза из-за переполнения энергохранилища
+    RESUME_FROM_ENERGY_PAUSE = "RESUME_FROM_ENERGY_PAUSE"  -- Возобновление после освобождения энергохранилища
 }
 
 -- Настройки сторон transposer
@@ -130,6 +133,18 @@ config.SIDES = {
     REACTOR = 3,  -- front
     ME_SYSTEM = 2,  -- back
     BACKUP_STORAGE = 0  -- bottom (для аварийного хранения)
+}
+
+-- Настройки энергохранилищ
+config.ENERGY_STORAGE = {
+    UPDATE_INTERVAL = 2,  -- Интервал обновления состояния (секунды)
+    FULL_THRESHOLD = 0.99,  -- Порог заполнения для остановки реакторов (99%)
+    RESUME_THRESHOLD = 0.95,  -- Порог заполнения для возобновления работы (95%)
+    SUPPORTED_TYPES = {  -- Поддерживаемые типы энергохранилищ Gregtech
+        "gregtech_machine",
+        "gt_batterybuffer",
+        "gt_storage"
+    }
 }
 
 -- Уровни логирования

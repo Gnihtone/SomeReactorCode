@@ -22,13 +22,16 @@ function VacuumServer:new()
     self.protocol = nil
     self.ui = nil
     
-    -- Подключенные клиенты (реакторы)
+    -- Подключенные клиенты
     self.clients = {}  -- address -> client data
     self.reactorList = {}  -- упорядоченный список для отображения
+    self.energyStorages = {}  -- Энергохранилища: clientAddress -> storages
+    self.pausedReactors = {}  -- Реакторы, приостановленные из-за энергии
     
     -- Потоки
     self.messageThread = nil
     self.uiThread = nil
+    self.energyManagementThread = nil
     
     return self
 end
@@ -72,6 +75,11 @@ function VacuumServer:setupHandlers()
         self:handleStatusUpdate(data, from)
     end)
     
+    -- Обновление энергохранилищ
+    self.protocol:registerHandler(config.MESSAGES.ENERGY_STORAGE_UPDATE, function(data, from)
+        self:handleEnergyStorageUpdate(data, from)
+    end)
+    
     -- Аварийная ситуация
     self.protocol:registerHandler(config.MESSAGES.EMERGENCY, function(data, from)
         self:handleEmergency(data, from)
@@ -87,27 +95,74 @@ end
 function VacuumServer:handleClientRegister(data, address)
     self:log("INFO", "Регистрация клиента: " .. data.name .. " [" .. address:sub(1, 8) .. "]")
     
-    -- Сохранение данных клиента
-    self.clients[address] = {
-        address = address,
-        name = data.name,
-        type = data.type,
-        capabilities = data.capabilities or {},
-        lastSeen = computer.uptime(),
-        reactorData = {
+    -- Определяем тип клиента
+    if data.type == "multi_reactor_client" then
+        -- Клиент с несколькими реакторами
+        self.clients[address] = {
+            address = address,
             name = data.name,
-            status = "OFFLINE",
-            temperature = 0,
-            tempPercent = 0,
-            euOutput = 0,
-            efficiency = 0,
-            running = false,
-            emergencyMode = false,
-            emergencyCooldown = 0,
-            maintenanceMode = false,
-            totalEU = 0
+            type = data.type,
+            capabilities = data.capabilities or {},
+            lastSeen = computer.uptime(),
+            reactors = {}  -- reactorId -> reactor data
         }
-    }
+        
+        -- Инициализация данных для каждого реактора
+        if data.reactors then
+            for _, reactor in ipairs(data.reactors) do
+                self.clients[address].reactors[reactor.id] = {
+                    reactorId = reactor.id,
+                    name = reactor.name,
+                    status = "OFFLINE",
+                    temperature = 0,
+                    tempPercent = 0,
+                    euOutput = 0,
+                    efficiency = 0,
+                    running = false,
+                    emergencyMode = false,
+                    emergencyCooldown = 0,
+                    maintenanceMode = false,
+                    totalEU = 0,
+                    runningTime = 0,
+                    pausedForEnergy = false
+                }
+            end
+        end
+    elseif data.type == "energy_storage_monitor" then
+        -- Клиент мониторинга энергохранилищ
+        self.clients[address] = {
+            address = address,
+            name = data.name,
+            type = data.type,
+            capabilities = data.capabilities or {},
+            lastSeen = computer.uptime()
+        }
+    else
+        -- Старый тип клиента (один реактор)
+        self.clients[address] = {
+            address = address,
+            name = data.name,
+            type = data.type or "vacuum_reactor",
+            capabilities = data.capabilities or {},
+            lastSeen = computer.uptime(),
+            reactorData = {
+                reactorId = data.name,
+                name = data.name,
+                status = "OFFLINE",
+                temperature = 0,
+                tempPercent = 0,
+                euOutput = 0,
+                efficiency = 0,
+                running = false,
+                emergencyMode = false,
+                emergencyCooldown = 0,
+                maintenanceMode = false,
+                totalEU = 0,
+                runningTime = 0,
+                pausedForEnergy = false
+            }
+        }
+    end
     
     -- Отправка подтверждения
     self.protocol:sendAck(address, config.MESSAGES.REGISTER)
@@ -121,8 +176,12 @@ function VacuumServer:handleClientUnregister(data, address)
     if self.clients[address] then
         self:log("INFO", "Отключение клиента: " .. self.clients[address].name)
         
-        -- Установка статуса оффлайн
-        if self.clients[address].reactorData then
+        -- Установка статуса оффлайн для всех реакторов клиента
+        if self.clients[address].type == "multi_reactor_client" then
+            for _, reactor in pairs(self.clients[address].reactors) do
+                reactor.status = "OFFLINE"
+            end
+        elseif self.clients[address].reactorData then
             self.clients[address].reactorData.status = "OFFLINE"
         end
         
@@ -137,11 +196,90 @@ function VacuumServer:handleStatusUpdate(data, address)
         -- Обновление времени последнего контакта
         self.clients[address].lastSeen = computer.uptime()
         
-        -- Обновление данных реактора
-        self.clients[address].reactorData = data
+        if self.clients[address].type == "multi_reactor_client" then
+            -- Обновление данных для нескольких реакторов
+            if data.reactors then
+                for _, reactorData in ipairs(data.reactors) do
+                    if self.clients[address].reactors[reactorData.reactorId] then
+                        self.clients[address].reactors[reactorData.reactorId] = reactorData
+                    end
+                end
+            end
+        else
+            -- Обновление данных одного реактора (старый формат)
+            self.clients[address].reactorData = data
+        end
         
         -- Обновление интерфейса
         self:updateReactorList()
+    end
+end
+
+-- Обработка обновления энергохранилищ
+function VacuumServer:handleEnergyStorageUpdate(data, address)
+    if self.clients[address] then
+        -- Обновление времени последнего контакта
+        self.clients[address].lastSeen = computer.uptime()
+        
+        -- Сохранение данных о хранилищах
+        self.energyStorages[address] = data.storages or {}
+        
+        -- Анализ заполнения хранилищ
+        local storedEU = 0
+        local capacityEU = 0
+        
+        for _, storage in ipairs(data.storages) do
+            storedEU = storedEU + storage.stored
+            capacityEU = capacityEU + storage.capacity
+        end
+        
+        local fillPercent = storedEU / capacityEU
+        -- Управление реакторами в зависимости от заполнения
+        if fillPercent >= config.ENERGY_STORAGE.FULL_THRESHOLD then
+            self:pauseReactorsForEnergy(string.format("Хранилище заполнено на %.1f%%", fillPercent * 100))
+        elseif fillPercent < config.ENERGY_STORAGE.RESUME_THRESHOLD then
+            self:resumeReactorsFromEnergyPause()
+        end
+    end
+end
+
+-- Приостановка реакторов из-за переполнения энергохранилища
+function VacuumServer:pauseReactorsForEnergy(reason)
+    self:log("WARNING", "Приостановка реакторов: " .. reason)
+    
+    -- Отправляем команду паузы всем работающим реакторам
+    for address, client in pairs(self.clients) do
+        if client.type == "multi_reactor_client" then
+            for reactorId, reactor in pairs(client.reactors) do
+                if reactor.running and not reactor.pausedForEnergy then
+                    self.protocol:sendCommand(address, config.COMMANDS.PAUSE_FOR_ENERGY_FULL, {}, reactorId)
+                    self.pausedReactors[reactorId] = true
+                end
+            end
+        elseif client.reactorData and client.reactorData.running and not client.reactorData.pausedForEnergy then
+            self.protocol:sendCommand(address, config.COMMANDS.PAUSE_FOR_ENERGY_FULL)
+            self.pausedReactors[client.reactorData.reactorId] = true
+        end
+    end
+end
+
+-- Возобновление работы реакторов после освобождения энергохранилища
+function VacuumServer:resumeReactorsFromEnergyPause()
+    self:log("INFO", "Возобновление работы реакторов после освобождения энергохранилища")
+    
+    -- Отправляем команду возобновления реакторам, которые были приостановлены
+    for address, client in pairs(self.clients) do
+        if client.type == "multi_reactor_client" then
+            for reactorId, reactor in pairs(client.reactors) do
+                if self.pausedReactors[reactorId] then
+                    self.protocol:sendCommand(address, config.COMMANDS.RESUME_FROM_ENERGY_PAUSE, {}, reactorId)
+                    self.pausedReactors[reactorId] = nil
+                end
+            end
+        elseif client.reactorData and self.pausedReactors[client.reactorData.reactorId] then
+            self.protocol:sendCommand(address, config.COMMANDS.RESUME_FROM_ENERGY_PAUSE)
+            self.pausedReactors[client.reactorData.reactorId] = nil
+        end
     end
 end
 
@@ -149,7 +287,8 @@ end
 function VacuumServer:handleEmergency(data, address)
     if self.clients[address] then
         local clientName = self.clients[address].name
-        self:log("CRITICAL", "АВАРИЙНАЯ СИТУАЦИЯ на " .. clientName .. ": " .. data.reason)
+        local reactorId = data.reactorId or data.reactorName or "Unknown"
+        self:log("CRITICAL", "АВАРИЙНАЯ СИТУАЦИЯ на " .. reactorId .. ": " .. data.reason)
         
         -- Дополнительное логирование деталей
         if data.temperature then
@@ -169,7 +308,7 @@ end
 
 -- Обнаружение клиентов
 function VacuumServer:discoverClients()
-    self:log("INFO", "Поиск активных реакторов...")
+    self:log("INFO", "Поиск активных реакторов и энергохранилищ...")
     self.protocol:discoverClients()
 end
 
@@ -178,7 +317,15 @@ function VacuumServer:updateReactorList()
     self.reactorList = {}
     
     for address, client in pairs(self.clients) do
-        table.insert(self.reactorList, client.reactorData)
+        if client.type == "multi_reactor_client" then
+            -- Добавляем все реакторы клиента
+            for reactorId, reactor in pairs(client.reactors) do
+                table.insert(self.reactorList, reactor)
+            end
+        elseif client.type == "vacuum_reactor" and client.reactorData then
+            -- Добавляем единственный реактор старого клиента
+            table.insert(self.reactorList, client.reactorData)
+        end
     end
     
     -- Сортировка по имени
@@ -199,9 +346,19 @@ function VacuumServer:checkConnectionTimeouts()
         local timeSinceLastSeen = currentTime - client.lastSeen
         
         if timeSinceLastSeen > config.NETWORK.CONNECTION_TIMEOUT then
-            if client.reactorData.status ~= "OFFLINE" then
+            if client.type == "multi_reactor_client" then
+                for _, reactor in pairs(client.reactors) do
+                    if reactor.status ~= "OFFLINE" then
+                        reactor.status = "OFFLINE"
+                        hasChanges = true
+                    end
+                end
+            elseif client.reactorData and client.reactorData.status ~= "OFFLINE" then
                 client.reactorData.status = "OFFLINE"
                 hasChanges = true
+            end
+            
+            if hasChanges then
                 self:log("WARNING", "Потеряна связь с " .. client.name)
             end
         end
@@ -214,29 +371,35 @@ end
 
 -- Отправка команды реактору
 function VacuumServer:sendReactorCommand(reactorName, command)
-    -- Поиск адреса реактора по имени
-    local targetAddress = nil
-    
+    -- Поиск реактора и его клиента
     for address, client in pairs(self.clients) do
-        if client.name == reactorName then
-            targetAddress = address
-            break
+        if client.type == "multi_reactor_client" then
+            for reactorId, reactor in pairs(client.reactors) do
+                if reactor.name == reactorName then
+                    self.protocol:sendCommand(address, command, {}, reactorId)
+                    self:log("INFO", "Команда " .. command .. " отправлена на " .. reactorName)
+                    return true
+                end
+            end
+        elseif client.reactorData and client.reactorData.name == reactorName then
+            self.protocol:sendCommand(address, command)
+            self:log("INFO", "Команда " .. command .. " отправлена на " .. reactorName)
+            return true
         end
     end
     
-    if targetAddress then
-        self.protocol:sendCommand(targetAddress, command)
-        self:log("INFO", "Команда " .. command .. " отправлена на " .. reactorName)
-        return true
-    else
-        self:log("ERROR", "Реактор " .. reactorName .. " не найден")
-        return false
-    end
+    self:log("ERROR", "Реактор " .. reactorName .. " не найден")
+    return false
 end
 
 function VacuumServer:sendReactorCommandToAll(command)
     for address, client in pairs(self.clients) do
-        self:sendReactorCommand(client.name, command)
+        if client.type == "multi_reactor_client" then
+            -- Отправляем команду без указания reactorId - клиент применит ко всем
+            self.protocol:sendCommand(address, command)
+        elseif client.type == "vacuum_reactor" then
+            self.protocol:sendCommand(address, command)
+        end
     end
 end
 
