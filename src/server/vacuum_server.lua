@@ -375,4 +375,5 @@ event.listen("interrupted", function()
 end)
 
 -- Запуск сервера
-server:run() 
+server:run()
+    

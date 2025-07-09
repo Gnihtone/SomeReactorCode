@@ -260,7 +260,7 @@ function VacuumReactor:replaceCoolantCells(damagedCells)
             -- Попытка получить новую cell из ME системы
             local originalCell = self.savedLayout[cell.slot]
             if originalCell and self:isCoolantCell(originalCell.name) then
-                local pulled = self:pullFromME(originalCell.name, 1, cell.slot, nil)
+                local pulled = self:pullFromME(originalCell.name, 1, cell.slot, 0)
                 if pulled == 0 then
                     success = false
                     self:log("ERROR", "Не удалось получить coolant cell для слота " .. cell.slot)
