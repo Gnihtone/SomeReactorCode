@@ -127,14 +127,14 @@ function VacuumReactor:stopReactor()
 end
 
 function VacuumReactor:updateCurrentLayout()
-    self.currentLayout = self.transposer.getAllStacks(config.SIDES.REACTOR)
-    -- local inventorySize = self.transposer.getInventorySize(config.SIDES.REACTOR)
-    -- for slot = 1, inventorySize do
-    --     local stack = self.transposer.getStackInSlot(config.SIDES.REACTOR, slot)
-    --     if stack then
-    --         self.currentLayout[slot] = stack
-    --     end
-    -- end
+    self.currentLayout = {}
+    local inventorySize = self.transposer.getInventorySize(config.SIDES.REACTOR)
+    for slot = 1, inventorySize do
+        local stack = self.transposer.getStackInSlot(config.SIDES.REACTOR, slot)
+        if stack then
+            self.currentLayout[slot] = stack
+        end
+    end
 end
 
 -- Выполнение технического обслуживания

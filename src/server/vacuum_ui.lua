@@ -101,7 +101,7 @@ function VacuumUI:updateReactors(reactorList)
     
     for _, reactor in ipairs(self.reactors) do
         self.totalEnergyProduced = self.totalEnergyProduced + (reactor.totalEU or 0)
-        if reactor.status == "RUNNING" then
+        if reactor.status == "RUNNING" or reactor.status == "WARNING" then
             self.activeReactors = self.activeReactors + 1
         end
     end
