@@ -65,7 +65,7 @@ function EnergyStorageClient:findAllStorages()
     -- Поиск GT батарейных буферов
     for address, componentType in component.list("gt_batterybuffer") do
         local storage = self:analyzeGTBatteryBuffer(address)
-        if storage then
+        if storage ~= nil then
             table.insert(self.storages, storage)
         end
     end
@@ -73,7 +73,7 @@ function EnergyStorageClient:findAllStorages()
     -- Поиск GT машин с энергохранилищем
     for address, componentType in component.list("gt_machine") do
         local storage = self:analyzeGTMachine(address)
-        if storage then
+        if storage ~= nil then
             table.insert(self.storages, storage)
         end
     end
@@ -82,7 +82,7 @@ function EnergyStorageClient:findAllStorages()
     for address, componentType in component.list() do
         if componentType:find("gregtech") or componentType:find("gt_") then
             local storage = self:analyzeGenericGTStorage(address, componentType)
-            if storage and not self.storages[address] then
+            if storage ~= nil and self.storages[address] ~= nil then
                 table.insert(self.storages, storage)
             end
         end
