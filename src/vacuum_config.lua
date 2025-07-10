@@ -47,6 +47,7 @@ config.ITEMS = {
     
     -- Топливные стержни
     FUEL_RODS = {
+        "gregtech:gt.glowstoneCell",
         "gregtech:gt.reactorUraniumQuad",
         "gregtech:gt.reactorMOXQuad",
         "gregtech:gt.Quad_Naquadahcell",
@@ -61,6 +62,7 @@ config.ITEMS = {
 
     -- Истощенные топливные стержни
     DEPLETED_FUEL_RODS = {
+        "gregtech:gt.sunnariumCell",
         "IC2:reactorUraniumQuaddepleted",
         "IC2:reactorMOXQuaddepleted",
         "gregtech:gt.Quad_NaquadahcellDep",
