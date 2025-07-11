@@ -149,6 +149,30 @@ config.ENERGY_STORAGE = {
     }
 }
 
+-- Настройки Discord интеграции
+config.DISCORD = {
+    ENABLED = false,  -- Включить Discord интеграцию
+    BOT_TOKEN = "",  -- Токен Discord бота
+    CHANNEL_ID = "",  -- ID канала для отправки сообщений
+    LOG_CHANNEL_ID = "",  -- ID канала для логов (опционально)
+    COMMAND_PREFIX = "!",  -- Префикс команд
+    UPDATE_INTERVAL = 30,  -- Интервал отправки обновлений статуса (секунды)
+    POLL_INTERVAL = 2,  -- Интервал проверки новых сообщений (секунды)
+    LOG_LEVELS = {  -- Какие уровни логов отправлять в Discord
+        WARNING = true,
+        ERROR = true,
+        CRITICAL = true
+    },
+    NOTIFICATIONS = {  -- Настройки уведомлений
+        REACTOR_START = true,  -- Уведомление о запуске реактора
+        REACTOR_STOP = true,  -- Уведомление об остановке реактора
+        EMERGENCY = true,  -- Уведомление об аварии
+        MAINTENANCE = true,  -- Уведомление о необходимости обслуживания
+        ENERGY_PAUSE = true,  -- Уведомление о паузе из-за энергии
+        SYSTEM_STATUS = true  -- Периодические обновления статуса системы
+    }
+}
+
 -- Уровни логирования
 config.LOG_LEVELS = {
     DEBUG = 1,

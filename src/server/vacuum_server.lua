@@ -9,6 +9,7 @@ local computer = require("computer")
 local config = require("vacuum_config")
 local Protocol = require("vacuum_protocol")
 local VacuumUI = require("vacuum_ui")
+local discordIntegration = require("discord_integration")
 
 -- Класс сервера
 local VacuumServer = {}
@@ -21,12 +22,17 @@ function VacuumServer:new()
     self.running = false
     self.protocol = nil
     self.ui = nil
+    self.discord = nil  -- Discord интеграция
     
     -- Подключенные клиенты
     self.clients = {}  -- address -> client data
     self.reactorList = {}  -- упорядоченный список для отображения
     self.energyStorages = {}  -- Энергохранилища: clientAddress -> storages
     self.pausedReactors = {}  -- Реакторы, приостановленные из-за энергии
+    
+    -- История логов для Discord
+    self.recentLogs = {}  -- Последние логи для команды !logs
+    self.maxLogHistory = 50  -- Максимальное количество логов в истории
     
     -- Потоки
     self.messageThread = nil
@@ -46,6 +52,17 @@ function VacuumServer:init()
     -- Инициализация интерфейса
     self.ui = VacuumUI:new()
     self.ui:init()
+    
+    -- Инициализация Discord интеграции
+    if config.DISCORD.ENABLED then
+        local success, err = discordIntegration.init(self)
+        if success then
+            self.discord = discordIntegration
+            self:log("INFO", "Discord интеграция активирована")
+        else
+            self:log("WARNING", "Не удалось инициализировать Discord: " .. tostring(err))
+        end
+    end
     
     -- Регистрация обработчиков сообщений
     self:setupHandlers()
@@ -247,6 +264,22 @@ end
 function VacuumServer:pauseReactorsForEnergy(reason)
     self:log("WARNING", "Приостановка реакторов: " .. reason)
     
+    -- Подсчет заполнения для Discord уведомления
+    local totalStored = 0
+    local totalCapacity = 0
+    for _, storages in pairs(self.energyStorages) do
+        for _, storage in ipairs(storages) do
+            totalStored = totalStored + storage.stored
+            totalCapacity = totalCapacity + storage.capacity
+        end
+    end
+    local fillPercent = totalCapacity > 0 and (totalStored / totalCapacity) or 0
+    
+    -- Discord уведомление
+    if self.discord then
+        self.discord.sendNotification("ENERGY_PAUSE", {fillPercent = fillPercent})
+    end
+    
     -- Отправляем команду паузы всем работающим реакторам
     for address, client in pairs(self.clients) do
         if client.type == "multi_reactor_client" then
@@ -294,6 +327,15 @@ function VacuumServer:handleEmergency(data, address)
         if data.temperature then
             self:log("CRITICAL", string.format("Температура: %d°C (%.1f%%)", 
                 data.temperature, data.tempPercent * 100))
+        end
+        
+        -- Discord уведомление об аварии
+        if self.discord then
+            self.discord.sendNotification("EMERGENCY", {
+                name = reactorId,
+                id = reactorId,
+                reason = data.reason
+            })
         end
     end
 end
@@ -369,6 +411,51 @@ function VacuumServer:checkConnectionTimeouts()
     end
 end
 
+-- Методы для Discord интеграции
+function VacuumServer:getReactors()
+    local reactors = {}
+    for _, reactor in ipairs(self.reactorList) do
+        reactors[reactor.reactorId or reactor.name] = reactor
+    end
+    return reactors
+end
+
+function VacuumServer:getEnergyStorages()
+    local allStorages = {}
+    for _, storages in pairs(self.energyStorages) do
+        for _, storage in ipairs(storages) do
+            table.insert(allStorages, storage)
+        end
+    end
+    return allStorages
+end
+
+function VacuumServer:getRecentLogs(count)
+    count = count or 10
+    local logs = {}
+    local startIdx = math.max(1, #self.recentLogs - count + 1)
+    for i = startIdx, #self.recentLogs do
+        table.insert(logs, self.recentLogs[i])
+    end
+    return logs
+end
+
+function VacuumServer:startReactor(reactorName)
+    return self:sendReactorCommand(reactorName, config.COMMANDS.START)
+end
+
+function VacuumServer:stopReactor(reactorName)
+    return self:sendReactorCommand(reactorName, config.COMMANDS.STOP)
+end
+
+function VacuumServer:startAllReactors()
+    self:sendReactorCommandToAll(config.COMMANDS.START)
+end
+
+function VacuumServer:stopAllReactors()
+    self:sendReactorCommandToAll(config.COMMANDS.STOP)
+end
+
 -- Отправка команды реактору
 function VacuumServer:sendReactorCommand(reactorName, command)
     -- Поиск реактора и его клиента
@@ -378,12 +465,32 @@ function VacuumServer:sendReactorCommand(reactorName, command)
                 if reactor.name == reactorName then
                     self.protocol:sendCommand(address, command, {}, reactorId)
                     self:log("INFO", "Команда " .. command .. " отправлена на " .. reactorName)
+                    
+                    -- Discord уведомления
+                    if self.discord then
+                        if command == config.COMMANDS.START then
+                            self.discord.sendNotification("REACTOR_START", {name = reactorName, id = reactorId})
+                        elseif command == config.COMMANDS.STOP then
+                            self.discord.sendNotification("REACTOR_STOP", {name = reactorName, id = reactorId})
+                        end
+                    end
+                    
                     return true
                 end
             end
         elseif client.reactorData and client.reactorData.name == reactorName then
             self.protocol:sendCommand(address, command)
             self:log("INFO", "Команда " .. command .. " отправлена на " .. reactorName)
+            
+            -- Discord уведомления
+            if self.discord then
+                if command == config.COMMANDS.START then
+                    self.discord.sendNotification("REACTOR_START", {name = reactorName})
+                elseif command == config.COMMANDS.STOP then
+                    self.discord.sendNotification("REACTOR_STOP", {name = reactorName})
+                end
+            end
+            
             return true
         end
     end
@@ -464,9 +571,29 @@ function VacuumServer:handleUserInput(key, code)
 end
 
 -- Логирование
-function VacuumServer:log(level, message)
+function VacuumServer:log(level, message, reactor)
+    local timestamp = os.time()
+    
     -- Добавление в UI
-    self.ui:addLog(os.time(), level, message, nil)
+    self.ui:addLog(timestamp, level, message, reactor)
+    
+    -- Сохранение в историю логов
+    table.insert(self.recentLogs, {
+        timestamp = os.date("%Y-%m-%d %H:%M:%S", timestamp),
+        level = level,
+        message = message,
+        reactor = reactor
+    })
+    
+    -- Ограничение размера истории
+    while #self.recentLogs > self.maxLogHistory do
+        table.remove(self.recentLogs, 1)
+    end
+    
+    -- Отправка в Discord
+    if self.discord then
+        self.discord.sendLog(level, message, reactor)
+    end
     
     -- Вывод в консоль для отладки
     -- print(string.format("[%s][%s] %s", os.date("%H:%M:%S"), level, message))
@@ -479,6 +606,14 @@ function VacuumServer:run()
     end
     
     self.running = true
+    
+    -- Запуск Discord интеграции
+    if self.discord then
+        local success, err = self.discord.start()
+        if not success then
+            self:log("ERROR", "Не удалось запустить Discord интеграцию: " .. tostring(err))
+        end
+    end
     
     -- Поток обработки сообщений
     self.messageThread = thread.create(function()
@@ -512,6 +647,11 @@ function VacuumServer:run()
     
     -- Завершение работы
     self:log("INFO", "Остановка сервера...")
+    
+    -- Остановка Discord интеграции
+    if self.discord then
+        self.discord.stop()
+    end
     
     -- Остановка потоков
     if self.messageThread then
