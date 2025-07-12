@@ -16,7 +16,7 @@ local internet = component.internet
 discord.config = {
     baseUrl = "https://discord.com/api/v10",
     headers = {},
-    timeout = 10
+    timeout = 10 * 72
 }
 
 -- Инициализация с токеном бота
