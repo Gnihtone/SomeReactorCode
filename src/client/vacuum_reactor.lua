@@ -1,10 +1,9 @@
 -- Модуль управления вакуумным реактором
-package.path = package.path .. ";../?.lua"
-
 local component = require("component")
 local computer = require("computer")
-local config = require("vacuum_config")
-local MEInterface = require("me_interface")
+
+local config = dofile("../vacuum_config.lua")
+local MEInterface = dofile("../me_interface.lua")
 
 -- Класс реактора
 local VacuumReactor = {}
@@ -128,12 +127,8 @@ end
 
 function VacuumReactor:updateCurrentLayout()
     self.currentLayout = {}
-    local inventorySize = self.transposer.getInventorySize(config.SIDES.REACTOR)
-    for slot = 1, inventorySize do
-        local stack = self.transposer.getStackInSlot(config.SIDES.REACTOR, slot)
-        if stack then
-            self.currentLayout[slot] = stack
-        end
+    for slot, stack in pairs(self.transposer.getAllStacks(config.SIDES.REACTOR).getAll()) do
+        self.currentLayout[slot] = stack
     end
 end
 
@@ -155,8 +150,7 @@ function VacuumReactor:performMaintenance()
     
     self:updateCurrentLayout()
     local success = true
-    
-    -- Проверка и замена поврежденных coolant cells
+
     local damagedCells = self:checkCoolantCells()
     if #damagedCells > 0 then
         self:log("INFO", "Найдено поврежденных coolant cells: " .. #damagedCells)
@@ -164,8 +158,7 @@ function VacuumReactor:performMaintenance()
             success = false
         end
     end
-    
-    -- Проверка и замена истощенных стержней
+
     local depletedRods = self:checkDepletedRods()
     if #depletedRods > 0 then
         self:log("INFO", "Найдено истощенных стержней: " .. #depletedRods)

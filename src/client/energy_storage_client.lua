@@ -1,12 +1,10 @@
 -- Клиент мониторинга энергохранилищ
-package.path = package.path .. ";../?.lua"
-
 local component = require("component")
 local event = require("event")
 local thread = require("thread")
 local computer = require("computer")
-local config = require("vacuum_config")
-local Protocol = require("vacuum_protocol")
+local config = dofile("../vacuum_config.lua")
+local Protocol = dofile("../vacuum_protocol.lua")
 
 -- Класс клиента энергохранилищ
 local EnergyStorageClient = {}

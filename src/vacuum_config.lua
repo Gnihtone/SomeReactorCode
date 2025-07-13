@@ -152,7 +152,7 @@ config.ENERGY_STORAGE = {
 -- Настройки Discord интеграции
 config.DISCORD = {
     ENABLED = true,  -- Включить Discord интеграцию
-    BOT_TOKEN = "MTM5MzM0Nzc1ODQ2NjkyNDc2NQ.GLs-HF.GY3lnskVA9TbuuiH8TMQZLiK3u__B2E1TRDIUU",  -- Токен Discord бота
+    BOT_TOKEN = "",  -- Токен Discord бота
     CHANNEL_ID = "1393349403204522065",  -- ID канала для отправки сообщений
     LOG_CHANNEL_ID = "1393349373630349383",  -- ID канала для логов (опционально)
     COMMAND_PREFIX = "!",  -- Префикс команд

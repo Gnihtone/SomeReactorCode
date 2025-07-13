@@ -2,6 +2,7 @@
 local component = require("component")
 local json = require("json")
 local event = require("event")
+local computer = require("computer")
 
 local discord = {}
 
@@ -16,7 +17,7 @@ local internet = component.internet
 discord.config = {
     baseUrl = "https://discord.com/api/v10",
     headers = {},
-    timeout = 10 * 72
+    timeout = 10
 }
 
 -- Инициализация с токеном бота
@@ -32,24 +33,18 @@ end
 -- Выполнение HTTP запроса
 local function request(method, endpoint, data)
     local url = discord.config.baseUrl .. endpoint
-    local headers = ""
     
-    for k, v in pairs(discord.config.headers) do
-        headers = headers .. k .. ": " .. v .. "\r\n"
-    end
-    
-    local body = ""
+    local body = nil
     if data then
         body = json.encode(data)
-        headers = headers .. "Content-Length: " .. #body .. "\r\n"
     end
     
-    local request = internet.request(url, body, headers, method)
+    local request = internet.request(url, body, discord.config.headers, method)
     if not request then
         return nil, "Не удалось создать запрос"
     end
     
-    local startTime = os.time()
+    local startTime = computer.uptime()
     while true do
         local status, err = request.finishConnect()
         if status then
@@ -58,7 +53,7 @@ local function request(method, endpoint, data)
             return nil, err
         end
         
-        if os.time() - startTime > discord.config.timeout then
+        if computer.uptime() - startTime > discord.config.timeout then
             return nil, "Таймаут соединения"
         end
         

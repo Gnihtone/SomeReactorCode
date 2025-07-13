@@ -1,8 +1,9 @@
 -- Discord интеграция для системы управления реакторами
-local discord = require("discord_api")
-local config = require("vacuum_config")
 local event = require("event")
 local thread = require("thread")
+
+local discord = dofile("discord_api.lua")
+local config = dofile("vacuum_config.lua")
 
 local integration = {}
 
