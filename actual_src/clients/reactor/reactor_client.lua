@@ -49,20 +49,19 @@ function VacuumClientManager:init()
 
     for i, reactorAddress in ipairs(self.reactorAddresses) do
         local reactorId = self.clientName .. "-R" .. i
-        local reactor = VacuumReactor:new(reactorId)
+        local vacuum_reactor = VacuumReactor:new(reactorId)
 
-        reactor.reactor = component.proxy(reactorAddress)
+        local reactor = component.proxy(reactorAddress)
 
         local transposerAddress = self:findNearestTransposer(reactor)
         if transposerAddress then
-            reactor.transposer = component.proxy(transposerAddress)
+            local transposer = component.proxy(transposerAddress)
 
-            reactor.meInterface = MEInterface:new(transposerAddress)
-
+            vacuum_reactor.init(reactor, transposer)
             self.reactors[reactorId] = reactor
             print("Инициализирован реактор: " .. reactorId)
         else
-            print("ВНИМАНИЕ: Не найден transposer для реактора " .. reactorId)
+            error("Не найден transposer для реактора " .. reactorId)
         end
     end
 
@@ -90,26 +89,33 @@ function VacuumClientManager:findAllTransposers()
     end
 end
 
+local function checkSlotsAreSame(slot, stack, reactor)
+    local x = slot % 9
+    local y = math.floor(slot / 9)
+    local slotInfo = reactor.getSlotInfo(x, y)
+
+    if (stack == nil or next(stack) == nil) and (slotInfo == nil or next(slotInfo) == nil) then
+        return true
+    end
+
+    if stack == nil or next(stack) == nil or slotInfo == nil or next(slotInfo) == nil then
+        return false
+    end
+
+    if stack.name ~= slotInfo.item.name then
+        return false
+    end
+
+    return true
+end
+
 local function checkInventoriesAreSame(transposer, reactorSide, reactor)
     local reactorInventory = transposer.getAllStacks(reactorSide).getAll()
     
     for slot, stack in pairs(reactorInventory) do
-        local x = slot % 9
-        local y = math.floor(slot / 9)
-        local slotInfo = reactor.getSlotInfo(x, y)
-        if (stack == nil or next(stack) == nil) and (slotInfo == nil or next(slotInfo) == nil) then
-            goto continue
-        end
-
-        if stack == nil or next(stack) == nil or slotInfo == nil or next(slotInfo) == nil then
+        if not checkSlotsAreSame(slot, stack, reactor) then
             return false
         end
-
-        if stack.name ~= slotInfo.item.name then
-            return false
-        end
-
-        ::continue::
     end
 
     return true
@@ -148,7 +154,7 @@ function VacuumClientManager:findNearestTransposer(reactor)
             error("Не найден другой инвентарь для transposer " .. transposerAddress)
         end
 
-        if not checkInventoriesAreSame(transposer, currentReactorSide, reactor.reactor) then
+        if not checkInventoriesAreSame(transposer, currentReactorSide, reactor) then
             goto continue
         end
 
@@ -170,7 +176,8 @@ function VacuumClientManager:findNearestTransposer(reactor)
         end
 
         local found = false
-        if checkInventoriesAreSame(transposer, currentReactorSide, reactor.reactor) then
+        local transferredStack = transposer.getStackInSlot(currentReactorSide, transferredSlot)
+        if checkSlotsAreSame(transferredSlot, transferredStack, reactor) then
             found = true
         end
 
@@ -182,7 +189,7 @@ function VacuumClientManager:findNearestTransposer(reactor)
         ::continue::
     end
     
-    error("Не найден transposer для реактора " .. reactor.name)
+    return nil
 end
 
 function VacuumClientManager:setupHandlers()
