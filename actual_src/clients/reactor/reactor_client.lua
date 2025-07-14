@@ -57,8 +57,8 @@ function VacuumClientManager:init()
         if transposerAddress then
             local transposer = component.proxy(transposerAddress)
 
-            vacuum_reactor.init(reactor, transposer)
-            self.reactors[reactorId] = reactor
+            vacuum_reactor:init(reactor, transposer)
+            self.reactors[reactorId] = vacuum_reactor
             print("Инициализирован реактор: " .. reactorId)
         else
             error("Не найден transposer для реактора " .. reactorId)
@@ -176,7 +176,7 @@ function VacuumClientManager:findNearestTransposer(reactor)
         end
 
         local found = false
-        local transferredStack = transposer.getStackInSlot(currentReactorSide, transferredSlot)
+        local transferredStack = transposer.getStackInSlot(currentReactorSide, transferredSlot + 1)
         if checkSlotsAreSame(transferredSlot, transferredStack, reactor) then
             found = true
         end

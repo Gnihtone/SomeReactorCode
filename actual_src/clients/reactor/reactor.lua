@@ -80,11 +80,15 @@ function VacuumReactor:init(reactor, transposer)
     self.transposer = transposer
 
     for side = 0, 5 do
-        if self.transposer.getInventoryName(side):find("Reactor") then
+        local inventoryName = self.transposer.getInventoryName(side)
+        if inventoryName and inventoryName:find("Reactor") then
             self.reactorSide = side
             break
         end
     end
+    
+    self:updateCurrentLayout()
+    self:saveCurrentLayout()
 
     local transposerAddress = transposer.address
     self.meInterface = MEInterface:new(transposerAddress)
@@ -103,6 +107,8 @@ function VacuumReactor:startReactor()
 
     self:updateCurrentLayout()
     self:saveCurrentLayout()
+
+    self.information.isBreeder = self:checkIsBreeder()
 
     if not self:performMaintenance() then
         self:log("WARNING", "Обслуживание не завершено, но реактор будет запущен")
@@ -276,7 +282,7 @@ function VacuumReactor:performMaintenance(damagedCells, depletedRods)
         return false
     end
     
-    if damagedCells == nil and depletedRods == nil then
+    if damagedCells == nil or depletedRods == nil then
         damagedCells = self:checkCoolantCells()
         depletedRods = self:checkDepletedRods()
     end

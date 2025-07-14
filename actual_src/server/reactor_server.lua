@@ -218,7 +218,7 @@ function ReactorsServer:pauseReactorsForEnergy(reason)
     for address, client in pairs(self.clients) do
         if client.type == common_config.NETWORK.CLIENT_TYPES.REACTOR_CLIENT then
             for reactorId, reactor in pairs(client.reactors) do
-                if reactor.status == common_config.REACTOR_STATUS.RUNNING then
+                if reactor.status == common_config.REACTOR_STATUS.RUNNING and not reactor.isBreeder then
                     self.protocol:sendCommand(address, common_config.COMMANDS.STOP, {}, reactorId)
                     self.pausedReactors[reactorId] = true
                 end
