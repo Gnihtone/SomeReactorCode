@@ -286,7 +286,6 @@ end
 function VacuumClientManager:log(level, message, reactorId)
     local timestamp = os.date("%H:%M:%S")
     local prefix = reactorId and string.format("[%s][%s][%s]", timestamp, level, reactorId) or string.format("[%s][%s]", timestamp, level)
-    print(prefix .. " " .. message)
     
     self:sendLog(level, message, reactorId)
 end

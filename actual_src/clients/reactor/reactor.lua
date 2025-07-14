@@ -90,6 +90,7 @@ function VacuumReactor:init(reactor, transposer)
     
     self:updateCurrentLayout()
     self:saveCurrentLayout()
+    self:analyzeComponents()
 
     local transposerAddress = transposer.address
     self.meInterface = MEInterface:new(transposerAddress)
@@ -262,7 +263,7 @@ function VacuumReactor:replaceDepletedRods(depletedRods)
         
         if transferred > 0 then
             local originalRod = self.savedLayout[rod.slot]
-            local pulled = self:pullFromME(originalRod.name, originalRod.size, rod.slot, nil)
+            local pulled = self:pullFromME(originalRod.name, originalRod.size, rod.slot, 0)
             if pulled < originalRod.size then
                 success = false
                 self:log("ERROR", "Не удалось получить стержень для слота " .. rod.slot)
@@ -531,8 +532,8 @@ function VacuumReactor:analyzeComponents()
             for _, fuelType in ipairs(config.ITEMS.FUEL_RODS) do
                 if stack.name == fuelType then
                     fuelCount = fuelCount + 1
+                    break
                 end
-                break
             end
         end
 

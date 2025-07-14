@@ -66,6 +66,10 @@ end
 
 function MEInterface:importFromME(itemName, amount, toSide, toSlot, damage)
     local meSlot, available = self:requestItem(itemName, amount, damage)
+
+    if meSlot == nil then
+        return 0
+    end
     
     local toTransfer = math.min(amount, available)
     local transferred = self.transposer.transferItem(
