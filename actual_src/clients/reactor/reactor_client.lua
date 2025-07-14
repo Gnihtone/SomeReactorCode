@@ -227,7 +227,9 @@ function VacuumClientManager:registerToServer()
     
     local reactorList = {}
     for reactorId, reactor in pairs(self.reactors) do
-        table.insert(reactorList, formatReactorData(reactor))
+        local reactorData = reactor:getInformation()
+        reactorData.reactorId = reactorId
+        table.insert(reactorList, formatReactorData(reactorData))
     end
     
     self.protocol:send("broadcast", common_config.MESSAGES.REGISTER, {

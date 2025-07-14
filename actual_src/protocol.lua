@@ -139,7 +139,7 @@ function Protocol:sendCommand(address, command, parameters, reactorId)
 end
 
 function Protocol:discoverClients()
-    return self:send("broadcast", config.MESSAGES.COMMAND, {
+    return self:broadcast(config.MESSAGES.COMMAND, {
         command = "DISCOVER"
     })
 end
