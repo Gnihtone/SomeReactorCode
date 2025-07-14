@@ -90,6 +90,7 @@ function VacuumClientManager:findAllTransposers()
 end
 
 local function checkSlotsAreSame(slot, stack, reactor)
+    slot = slot - 1
     local x = slot % 9
     local y = math.floor(slot / 9)
     local slotInfo = reactor.getSlotInfo(x, y)
@@ -113,6 +114,7 @@ local function checkInventoriesAreSame(transposer, reactorSide, reactor)
     local reactorInventory = transposer.getAllStacks(reactorSide).getAll()
     
     for slot, stack in pairs(reactorInventory) do
+        slot = slot + 1
         if not checkSlotsAreSame(slot, stack, reactor) then
             return false
         end
@@ -162,9 +164,10 @@ function VacuumClientManager:findNearestTransposer(reactor)
 
         local transferredSlot = nil
         for slot, stack in pairs(reactorInventory) do
+            slot = slot + 1
             if stack and next(stack) ~= nil then
                 transferredSlot = slot
-                local transferred = transposer.transferItem(currentReactorSide, anotherStorageSide, 1, slot + 1, 1)
+                local transferred = transposer.transferItem(currentReactorSide, anotherStorageSide, 1, slot, 1)
                 if transferred == 0 then
                     error("Скорее всего другое хранилище заполнено, переместить из реактора в другое хранилище не удалось")
                 end
@@ -176,12 +179,12 @@ function VacuumClientManager:findNearestTransposer(reactor)
         end
 
         local found = false
-        local transferredStack = transposer.getStackInSlot(currentReactorSide, transferredSlot + 1)
+        local transferredStack = transposer.getStackInSlot(currentReactorSide, transferredSlot)
         if checkSlotsAreSame(transferredSlot, transferredStack, reactor) then
             found = true
         end
 
-        transposer.transferItem(anotherStorageSide, currentReactorSide, 1, 1, transferredSlot + 1)
+        transposer.transferItem(anotherStorageSide, currentReactorSide, 1, 1, transferredSlot)
         if found then
             return transposerAddress
         end

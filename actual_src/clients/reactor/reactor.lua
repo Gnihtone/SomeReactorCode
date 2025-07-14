@@ -167,6 +167,7 @@ end
 function VacuumReactor:updateCurrentLayout()
     self.currentLayout = {}
     for slot, stack in pairs(self.transposer.getAllStacks(self.reactorSide).getAll()) do
+        slot = slot + 1
         self.currentLayout[slot] = stack
         if self:checkIsCoolantCell(stack.name) then
             self.isCoolantCell[slot] = true
@@ -282,6 +283,8 @@ function VacuumReactor:performMaintenance(damagedCells, depletedRods)
         self:log("DEBUG", "Обслуживание уже выполняется")
         return false
     end
+
+    local wasRunning = self.status == common_config.REACTOR_STATUS.RUNNING
     
     if damagedCells == nil or depletedRods == nil then
         damagedCells = self:checkCoolantCells()
@@ -313,11 +316,11 @@ function VacuumReactor:performMaintenance(damagedCells, depletedRods)
         end
     end
 
-    if success then
+    if success and wasRunning then
         self.reactor.setActive(true)
         self.status = common_config.REACTOR_STATUS.RUNNING
         self:log("INFO", "Реактор перезапущен после обслуживания")
-    else
+    elseif not success then
         self:log("WARNING", "Реактор не перезапущен из-за ошибок обслуживания")
     end
     

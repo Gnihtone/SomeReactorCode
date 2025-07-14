@@ -29,6 +29,7 @@ end
 
 function MEInterface:findItemInME(itemName, minDamage, maxDamage)
     for slot, stack in pairs(self.transposer.getAllStacks(self.meSide).getAll()) do
+        slot = slot + 1
         if stack and stack.name == itemName then
             if minDamage and maxDamage then
                 if stack.damage >= minDamage and stack.damage <= maxDamage then
