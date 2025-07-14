@@ -2,10 +2,10 @@
 local component = require("component")
 local term = require("term")
 
-local config = require("SomeReactorCode.actual_src.server.config")
+local config = require("SomeReactorCode.server.config")
 local gpu = component.gpu
 
-local common_config = require("SomeReactorCode.actual_src.config")
+local common_config = require("SomeReactorCode.config")
 
 local VacuumUI = {}
 VacuumUI.__index = VacuumUI

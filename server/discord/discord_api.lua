@@ -3,7 +3,7 @@ local component = require("component")
 local event = require("event")
 local computer = require("computer")
 
-local json = require("SomeReactorCode.actual_src.server.discord.json")
+local json = require("SomeReactorCode.server.discord.json")
 
 local discord = {}
 

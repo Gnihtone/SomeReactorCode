@@ -4,12 +4,12 @@ local thread = require("thread")
 local keyboard = require("keyboard")
 local computer = require("computer")
 
-local config = require("SomeReactorCode.actual_src.server.config")
-local VacuumUI = require("SomeReactorCode.actual_src.server.ui")
-local discordIntegration = require("SomeReactorCode.actual_src.server.discord.discord_integration")
+local config = require("SomeReactorCode.server.config")
+local VacuumUI = require("SomeReactorCode.server.ui")
+local discordIntegration = require("SomeReactorCode.server.discord.discord_integration")
 
-local common_config = require("SomeReactorCode.actual_src.config")
-local Protocol = require("SomeReactorCode.actual_src.protocol")
+local common_config = require("SomeReactorCode.config")
+local Protocol = require("SomeReactorCode.protocol")
 
 local ReactorsServer = {}
 ReactorsServer.__index = ReactorsServer

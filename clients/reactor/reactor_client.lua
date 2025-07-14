@@ -3,12 +3,12 @@ local event = require("event")
 local thread = require("thread")
 local computer = require("computer")
 
-local config = require("SomeReactorCode.actual_src.clients.reactor.config")
-local VacuumReactor = require("SomeReactorCode.actual_src.clients.reactor.reactor")
-local MEInterface = require("SomeReactorCode.actual_src.clients.reactor.me_interface")
+local config = require("SomeReactorCode.clients.reactor.config")
+local VacuumReactor = require("SomeReactorCode.clients.reactor.reactor")
+local MEInterface = require("SomeReactorCode.clients.reactor.me_interface")
 
-local common_config = require("SomeReactorCode.actual_src.config")
-local Protocol = require("SomeReactorCode.actual_src.protocol")
+local common_config = require("SomeReactorCode.config")
+local Protocol = require("SomeReactorCode.protocol")
 
 local VacuumClientManager = {}
 VacuumClientManager.__index = VacuumClientManager
