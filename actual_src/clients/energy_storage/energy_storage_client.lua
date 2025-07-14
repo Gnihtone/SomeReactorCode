@@ -3,9 +3,9 @@ local event = require("event")
 local thread = require("thread")
 local computer = require("computer")
 
-local config = require("SomeRectorCode.actual_src.clients.energy_storage.config")
-local common_config = require("SomeRectorCode.actual_src.config")
-local Protocol = require("SomeRectorCode.actual_src.protocol")
+local config = require("SomeReactorCode.actual_src.clients.energy_storage.config")
+local common_config = require("SomeReactorCode.actual_src.config")
+local Protocol = require("SomeReactorCode.actual_src.protocol")
 
 local EnergyStorageClient = {}
 EnergyStorageClient.__index = EnergyStorageClient

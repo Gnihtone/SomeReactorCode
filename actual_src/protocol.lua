@@ -2,7 +2,7 @@ local component = require("component")
 local serialization = require("serialization")
 local event = require("event")
 
-local config = require("SomeRectorCode.actual_src.config")
+local config = require("SomeReactorCode.actual_src.config")
 
 local Protocol = {}
 Protocol.__index = Protocol

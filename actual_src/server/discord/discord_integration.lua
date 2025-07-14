@@ -2,8 +2,8 @@
 local event = require("event")
 local thread = require("thread")
 
-local discord = require("SomeRectorCode.actual_src.server.discord.discord_api")
-local config = require("SomeRectorCode.actual_src.server.config")
+local discord = require("SomeReactorCode.actual_src.server.discord.discord_api")
+local config = require("SomeReactorCode.actual_src.server.config")
 
 local integration = {}
 

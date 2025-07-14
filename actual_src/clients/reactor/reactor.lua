@@ -1,10 +1,10 @@
 local component = require("component")
 local computer = require("computer")
 
-local config = require("SomeRectorCode.actual_src.clients.reactor.config")
-local MEInterface = require("SomeRectorCode.actual_src.clients.reactor.me_interface")
+local config = require("SomeReactorCode.actual_src.clients.reactor.config")
+local MEInterface = require("SomeReactorCode.actual_src.clients.reactor.me_interface")
 
-local common_config = require("SomeRectorCode.actual_src.config")
+local common_config = require("SomeReactorCode.actual_src.config")
 
 local VacuumReactor = {}
 VacuumReactor.__index = VacuumReactor
