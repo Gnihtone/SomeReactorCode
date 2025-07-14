@@ -86,6 +86,25 @@ function ReactorsServer:setupHandlers()
     end)
 end
 
+function ReactorsServer:formatReactorData(reactorData)
+    return {
+        reactorId = reactorData.reactorId,
+        name = reactorData.name,
+        status = reactorData.status,
+        isBreeder = reactorData.isBreeder,
+        pausedForEnergy = self.pausedReactors[reactorData.reactorId] or false,
+        temperature = reactorData.temperature,
+        maxTemperature = reactorData.maxTemperature,
+        tempPercent = reactorData.tempPercent,
+        euOutput = reactorData.euOutput,
+        uptime = reactorData.uptime,
+        totalEU = reactorData.totalEU,
+        runningTime = reactorData.runningTime,
+        coolantStatus = reactorData.coolantStatus,
+        fuelStatus = reactorData.fuelStatus,
+    }
+end
+
 function ReactorsServer:handleClientRegister(data, address)
     self:log("INFO", "Регистрация клиента: " .. data.name .. " [" .. address:sub(1, 8) .. "]")
     
@@ -100,7 +119,7 @@ function ReactorsServer:handleClientRegister(data, address)
         
         if data.reactors then
             for _, reactor in ipairs(data.reactors) do
-                self.clients[address].reactors[reactor.reactorId] = reactor
+                self.clients[address].reactors[reactor.reactorId] = self:formatReactorData(reactor)
             end
         end
     elseif data.type == common_config.NETWORK.CLIENT_TYPES.ENERGY_STORAGE_CLIENT then
@@ -150,22 +169,7 @@ function ReactorsServer:handleStatusUpdate(data, address)
             if data.reactors then
                 for _, reactorData in ipairs(data.reactors) do
                     if self.clients[address].reactors[reactorData.reactorId] then
-                        self.clients[address].reactors[reactorData.reactorId] = {
-                            reactorId = reactorData.reactorId,
-                            name = reactorData.name,
-                            status = reactorData.status,
-                            isBreeder = reactorData.isBreeder,
-                            pausedForEnergy = self.pausedReactors[reactorData.reactorId] or false,
-                            temperature = reactorData.temperature,
-                            maxTemperature = reactorData.maxTemperature,
-                            tempPercent = reactorData.tempPercent,
-                            euOutput = reactorData.euOutput,
-                            uptime = reactorData.uptime,
-                            totalEU = reactorData.totalEU,
-                            runningTime = reactorData.runningTime,
-                            coolantStatus = reactorData.coolantStatus,
-                            fuelStatus = reactorData.fuelStatus,
-                        }
+                        self.clients[address].reactors[reactorData.reactorId] = self:formatReactorData(reactorData)
                     end
                 end
             end

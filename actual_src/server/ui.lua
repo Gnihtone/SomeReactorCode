@@ -162,9 +162,10 @@ function VacuumUI:drawReactorPanel(reactor, y, isSelected)
     gpu.set(tempX, y + 1, "Темп: ")
     
     local tempColor = config.UI.COLORS.STATUS_OK
-    if reactor.tempPercent >= 0.85 then
+    local tempPercent = reactor.tempPercent or 0
+    if tempPercent >= 0.85 then
         tempColor = config.UI.COLORS.STATUS_ERROR
-    elseif reactor.tempPercent >= 0.7 then
+    elseif tempPercent >= 0.7 then
         tempColor = config.UI.COLORS.STATUS_WARNING
     end
     
@@ -179,10 +180,12 @@ function VacuumUI:drawReactorPanel(reactor, y, isSelected)
     
     -- Третья строка - компоненты и время работы
     if reactor.coolantStatus then
+        local coolantDamaged = reactor.coolantStatus.damaged or 0
+        local coolantTotal = reactor.coolantStatus.total or 0
         local coolantText = string.format("Охлаждение: %d/%d", 
-            reactor.coolantStatus.total - reactor.coolantStatus.damaged,
-            reactor.coolantStatus.total)
-        if reactor.coolantStatus.damaged > 0 then
+            coolantTotal - coolantDamaged,
+            coolantTotal)
+        if coolantDamaged > 0 then
             gpu.setForeground(config.UI.COLORS.STATUS_WARNING)
         else
             gpu.setForeground(config.UI.COLORS.FOREGROUND)
@@ -191,10 +194,12 @@ function VacuumUI:drawReactorPanel(reactor, y, isSelected)
     end
     
     if reactor.fuelStatus then
+        local fuelDepleted = reactor.fuelStatus.depleted or 0
+        local fuelTotal = reactor.fuelStatus.total or 0
         local fuelText = string.format("Топливо: %d/%d", 
-            reactor.fuelStatus.total - reactor.fuelStatus.depleted,
-            reactor.fuelStatus.total)
-        if reactor.fuelStatus.depleted > 0 then
+            fuelTotal - fuelDepleted,
+            fuelTotal)
+        if fuelDepleted > 0 then
             gpu.setForeground(config.UI.COLORS.STATUS_WARNING)
         else
             gpu.setForeground(config.UI.COLORS.FOREGROUND)

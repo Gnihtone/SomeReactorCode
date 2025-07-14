@@ -223,7 +223,7 @@ function VacuumClientManager:registerToServer()
     
     local timeout = computer.uptime() + common_config.NETWORK.TIMEOUT
     while computer.uptime() < timeout and not self.serverAddress do
-        os.sleep(0.5)
+        self.protocol:processMessages(0.1)
     end
     
     if not self.serverAddress then

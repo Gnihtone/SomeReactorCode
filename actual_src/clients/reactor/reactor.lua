@@ -427,7 +427,8 @@ function VacuumReactor:clearEmergency()
         return
     end
     
-    if self.status.tempPercent > 0.3 then
+    local tempPercent = self.information.tempPercent or 0
+    if tempPercent > 0.3 then
         self:log("WARNING", "Температура все еще высока для выхода из аварийного режима")
         return
     end
@@ -446,7 +447,7 @@ function VacuumReactor:update()
 
     self.information.temperature = self.reactor.getHeat()
     self.information.maxTemperature = self.reactor.getMaxHeat()
-    self.information.tempPercent = self.information.temperature / self.information.maxTemperature * 100
+    self.information.tempPercent = self.information.temperature / self.information.maxTemperature
     self.information.euOutput = self.reactor.getReactorEUOutput()
     self.information.running = self.reactor.producesEnergy()
     
