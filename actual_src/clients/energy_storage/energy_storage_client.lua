@@ -62,7 +62,7 @@ function EnergyStorageClient:findAllStorages()
     
     for address, componentType in component.list("gt_") do
         local storage = self:analyzeGenericGTStorage(address, componentType)
-        if storage ~= nil and self.storages[address] ~= nil then
+        if storage ~= nil then
             self.storages[address] = storage
         end
     end
