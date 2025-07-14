@@ -116,6 +116,21 @@ function integration.registerCommands()
             end
         end
     end
+
+    commandHandlers["clear"] = function(cmd)
+        if #cmd.args < 1 then
+            discord.sendError(cmd.channelId, "Использование: !clear <имя_реактора>")
+            return
+        end
+        
+        local target = cmd.args[1]
+        local success = server.clearReactor(target)
+        if success then
+            discord.sendMessage(cmd.channelId, "🧹 Реактор " .. target .. " очищен")
+        else
+            discord.sendError(cmd.channelId, "Не удалось очистить реактор " .. target)
+        end
+    end
     
     -- Команда помощи
     commandHandlers["help"] = function(cmd)
@@ -142,6 +157,11 @@ function integration.registerCommands()
                 {
                     name = config.DISCORD.COMMAND_PREFIX .. "stop <имя|all>",
                     value = "Остановить реактор или все реакторы",
+                    inline = false
+                },
+                {
+                    name = config.DISCORD.COMMAND_PREFIX .. "clear <имя>",
+                    value = "Очистить реактор (убрать все предметы)",
                     inline = false
                 },
                 {
@@ -395,4 +415,4 @@ function integration.sendLog(level, message, reactor)
     end
 end
 
-return integration 
+return integration

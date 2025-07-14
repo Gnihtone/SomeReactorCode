@@ -233,6 +233,8 @@ function VacuumClientManager:handleServerCommand(command, parameters, reactorId)
             reactor:stopReactor()
         elseif command == common_config.COMMANDS.FORCE_MAINTENANCE then
             reactor:performMaintenance()
+        elseif command == common_config.COMMANDS.CLEAR_REACTOR then
+            reactor:clearReactor()
         end
     elseif not reactorId then
         for id, reactor in pairs(self.reactors) do

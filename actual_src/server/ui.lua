@@ -75,7 +75,7 @@ function VacuumUI:drawFooter()
     gpu.setBackground(config.UI.COLORS.BACKGROUND)
     gpu.setForeground(config.UI.COLORS.BORDER)
     
-    local helpText = "[↑↓] Прокрутка | [S] Старт | [T] Стоп | [M] Обслуживание | [R] Обновить | [G] Остановка всех | [P] Запуск всех | [Q] Выход"
+    local helpText = "[↑↓] Прокрутка | [S] Старт | [T] Стоп | [M] Обслуживание | [V] Очистить | [R] Обновить | [G] Остановка всех | [P] Запуск всех | [Q] Выход"
     local helpX = math.floor((self.width - #helpText) / 2)
     gpu.set(helpX, self.height, helpText)
 end

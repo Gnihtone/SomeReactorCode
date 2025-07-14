@@ -574,4 +574,34 @@ function VacuumReactor:getAndClearLogs()
     return logs
 end
 
+function VacuumReactor:clearReactor()
+    self:log("INFO", "Очистка реактора...")
+
+    self.reactor.setActive(false)
+
+    self.status = common_config.REACTOR_STATUS.MAINTENANCE
+
+    local cleared = 0
+    local inventorySize = #self.currentLayout
+    
+    for slot = 1, inventorySize do
+        local stack = self.currentLayout[slot]
+        if stack and next(stack) ~= nil then
+            local transferred = self.meInterface:exportToME(self.reactorSide, slot, stack.size)
+            if transferred > 0 then
+                cleared = cleared + 1
+                self:log("DEBUG", "Предмет из слота " .. slot .. " перемещен в ME")
+            else
+                self:log("WARNING", "Не удалось переместить предмет из слота " .. slot)
+            end
+        end
+    end
+
+    self:updateCurrentLayout()
+    self.status = common_config.REACTOR_STATUS.IDLE
+    self:log("INFO", "Реактор очищен. Перемещено предметов: " .. cleared)
+    
+    return cleared
+end
+
 return VacuumReactor 

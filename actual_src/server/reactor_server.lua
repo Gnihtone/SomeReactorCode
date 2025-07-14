@@ -384,6 +384,8 @@ function ReactorsServer:sendReactorCommand(reactorName, command)
                             self.discord.sendNotification("REACTOR_START", {name = reactorName, id = reactorId})
                         elseif command == common_config.COMMANDS.STOP then
                             self.discord.sendNotification("REACTOR_STOP", {name = reactorName, id = reactorId})
+                        elseif command == common_config.COMMANDS.CLEAR_REACTOR then
+                            self.discord.sendNotification("REACTOR_CLEAR", {name = reactorName, id = reactorId})
                         end
                     end
                     
@@ -399,6 +401,8 @@ function ReactorsServer:sendReactorCommand(reactorName, command)
                     self.discord.sendNotification("REACTOR_START", {name = reactorName})
                 elseif command == common_config.COMMANDS.STOP then
                     self.discord.sendNotification("REACTOR_STOP", {name = reactorName})
+                elseif command == common_config.COMMANDS.CLEAR_REACTOR then
+                    self.discord.sendNotification("REACTOR_CLEAR", {name = reactorName})
                 end
             end
             
@@ -416,6 +420,10 @@ function ReactorsServer:sendReactorCommandToAll(command)
             self.protocol:sendCommand(address, command)
         end
     end
+end
+
+function ReactorsServer:clearReactor(reactorName)
+    return self:sendReactorCommand(reactorName, common_config.COMMANDS.CLEAR_REACTOR)
 end
 
 function ReactorsServer:exit()
@@ -451,6 +459,11 @@ function ReactorsServer:handleUserInput(key, code)
         local reactor = self.ui:getSelectedReactor()
         if reactor then
             self:sendReactorCommand(reactor.name, common_config.COMMANDS.FORCE_MAINTENANCE)
+        end
+    elseif key == keyboard.keys.v then
+        local reactor = self.ui:getSelectedReactor()
+        if reactor then
+            self:sendReactorCommand(reactor.name, common_config.COMMANDS.CLEAR_REACTOR)
         end
     elseif key == keyboard.keys.r then
         self:discoverClients()
