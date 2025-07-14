@@ -10,6 +10,14 @@ local Protocol = require("SomeReactorCode.actual_src.protocol")
 local EnergyStorageClient = {}
 EnergyStorageClient.__index = EnergyStorageClient
 
+local function getTableSize(table)
+    local size = 0
+    for _, _ in pairs(table) do
+        size = size + 1
+    end
+    return size
+end
+
 function EnergyStorageClient:new(clientName)
     local self = setmetatable({}, EnergyStorageClient)
     
@@ -35,10 +43,11 @@ function EnergyStorageClient:init()
     
     self:findAllStorages()
     
-    if #self.storages == 0 then
+    local storagesSize = getTableSize(self.storages)
+    if storagesSize == 0 then
         print("ВНИМАНИЕ: Не найдено ни одного поддерживаемого энергохранилища!")
     else
-        print("Найдено энергохранилищ: " .. #self.storages)
+        print("Найдено энергохранилищ: " .. storagesSize)
     end
     
     self:setupHandlers()
