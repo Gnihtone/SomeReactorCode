@@ -158,6 +158,7 @@ function ReactorsServer:handleStatusUpdate(data, address)
                             pausedForEnergy = self.pausedReactors[reactorData.reactorId] or false,
                             temperature = reactorData.temperature,
                             maxTemperature = reactorData.maxTemperature,
+                            tempPercent = reactorData.tempPercent,
                             euOutput = reactorData.euOutput,
                             uptime = reactorData.uptime,
                             totalEU = reactorData.totalEU,

@@ -205,23 +205,6 @@ function VacuumClientManager:setupHandlers()
     end)
 end
 
-local function formatReactorData(reactor)
-    return {
-        reactorId = reactor.reactorId,
-        name = reactor.name,
-        status = reactor.status,
-        isBreeder = reactor.isBreeder,
-        temperature = reactor.temperature,
-        maxTemperature = reactor.maxTemperature,
-        euOutput = reactor.euOutput,
-        uptime = reactor.uptime,
-        totalEU = reactor.totalEU,
-        runningTime = reactor.runningTime,
-        coolantStatus = reactor.coolantStatus,
-        fuelStatus = reactor.fuelStatus,
-    }
-end
-
 function VacuumClientManager:registerToServer()
     self:log("INFO", "Поиск сервера...")
     
@@ -229,7 +212,7 @@ function VacuumClientManager:registerToServer()
     for reactorId, reactor in pairs(self.reactors) do
         local reactorData = reactor:getInformation()
         reactorData.reactorId = reactorId
-        table.insert(reactorList, formatReactorData(reactorData))
+        table.insert(reactorList, reactorData)
     end
     
     self.protocol:send("broadcast", common_config.MESSAGES.REGISTER, {
@@ -279,7 +262,7 @@ function VacuumClientManager:sendStatusUpdate()
     for reactorId, reactor in pairs(self.reactors) do
         local reactorData = reactor:getInformation()
         reactorData.reactorId = reactorId
-        table.insert(reactorsData, formatReactorData(reactorData))
+        table.insert(reactorsData, reactorData)
     end
     
     self.protocol:send(self.serverAddress, common_config.MESSAGES.STATUS_UPDATE, {

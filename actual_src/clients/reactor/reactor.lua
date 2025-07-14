@@ -32,6 +32,7 @@ function VacuumReactor:new(name)
         isBreeder = false,
         temperature = 0,
         maxTemperature = config.REACTOR.MAX_TEMPERATURE,
+        tempPercent = 0,
         euOutput = 0,
         uptime = 0,
         totalEU = 0,
@@ -445,7 +446,7 @@ function VacuumReactor:update()
 
     self.information.temperature = self.reactor.getHeat()
     self.information.maxTemperature = self.reactor.getMaxHeat()
-    self.information.tempPercent = self.information.temperature / self.information.maxTemperature
+    self.information.tempPercent = self.information.temperature / self.information.maxTemperature * 100
     self.information.euOutput = self.reactor.getReactorEUOutput()
     self.information.running = self.reactor.producesEnergy()
     
