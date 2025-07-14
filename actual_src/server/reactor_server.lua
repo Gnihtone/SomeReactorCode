@@ -6,7 +6,7 @@ local computer = require("computer")
 
 local config = dofile("config.lua")
 local VacuumUI = dofile("ui.lua")
-local discordIntegration = dofile("discord_integration.lua")
+local discordIntegration = dofile("discord/discord_integration.lua")
 
 local common_config = dofile("../config.lua")
 local Protocol = dofile("../../protocol.lua")
