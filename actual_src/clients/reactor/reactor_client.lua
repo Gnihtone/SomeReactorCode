@@ -3,11 +3,12 @@ local event = require("event")
 local thread = require("thread")
 local computer = require("computer")
 
-local config = dofile("config.lua")
-local VacuumReactor = dofile("reactor.lua")
+local config = require("SomeRectorCode.actual_src.clients.reactor.config")
+local VacuumReactor = require("SomeRectorCode.actual_src.clients.reactor.reactor")
+local MEInterface = require("SomeRectorCode.actual_src.clients.reactor.me_interface")
 
-local common_config = dofile("../../config.lua")
-local Protocol = dofile("../../protocol.lua")
+local common_config = require("SomeRectorCode.actual_src.config")
+local Protocol = require("SomeRectorCode.actual_src.protocol")
 
 local VacuumClientManager = {}
 VacuumClientManager.__index = VacuumClientManager
@@ -56,7 +57,6 @@ function VacuumClientManager:init()
         if transposerAddress then
             reactor.transposer = component.proxy(transposerAddress)
 
-            local MEInterface = require("me_interface")
             reactor.meInterface = MEInterface:new(transposerAddress)
 
             self.reactors[reactorId] = reactor

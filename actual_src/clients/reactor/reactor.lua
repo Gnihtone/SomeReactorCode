@@ -1,25 +1,21 @@
--- Модуль управления вакуумным реактором
 local component = require("component")
 local computer = require("computer")
 
-local config = dofile("config.lua")
-local MEInterface = dofile("me_interface.lua")
+local config = require("SomeRectorCode.actual_src.clients.reactor.config")
+local MEInterface = require("SomeRectorCode.actual_src.clients.reactor.me_interface")
 
-local common_config = dofile("../../config.lua")
+local common_config = require("SomeRectorCode.actual_src.config")
 
--- Класс реактора
 local VacuumReactor = {}
 VacuumReactor.__index = VacuumReactor
 
 function VacuumReactor:new(name)
     local self = setmetatable({}, VacuumReactor)
     
-    -- Основные параметры
     self.name = name
     self.emergencyCooldown = 0
     self.status = common_config.REACTOR_STATUS.IDLE
     
-    -- Компоненты
     self.reactor = nil
     self.transposer = nil
     self.meInterface = nil
@@ -50,7 +46,6 @@ function VacuumReactor:new(name)
         }
     }
     
-    -- Сохраненная схема и логи
     self.savedLayout = {}
     self.logs = {}
     self.startTime = computer.uptime()
@@ -59,7 +54,6 @@ function VacuumReactor:new(name)
     return self
 end
 
--- Сохранение текущей схемы реактора
 function VacuumReactor:saveCurrentLayout()
     self.savedLayout = {}
     local inventorySize = #self.currentLayout
@@ -101,7 +95,6 @@ function VacuumReactor:init(reactor, transposer)
     return true
 end
 
--- Запуск реактора
 function VacuumReactor:startReactor()
     if self.status == common_config.REACTOR_STATUS.EMERGENCY then
         self:log("ERROR", "Невозможно запустить реактор в аварийном режиме")
@@ -441,7 +434,6 @@ function VacuumReactor:clearEmergency()
     end
 end
 
--- Обновление состояния реактора
 function VacuumReactor:update()
     self.information.status = self.status
 

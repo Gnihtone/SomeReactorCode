@@ -4,12 +4,12 @@ local thread = require("thread")
 local keyboard = require("keyboard")
 local computer = require("computer")
 
-local config = dofile("config.lua")
-local VacuumUI = dofile("ui.lua")
-local discordIntegration = dofile("discord/discord_integration.lua")
+local config = require("SomeRectorCode.actual_src.server.config")
+local VacuumUI = require("SomeRectorCode.actual_src.server.ui")
+local discordIntegration = require("SomeRectorCode.actual_src.server.discord.discord_integration")
 
-local common_config = dofile("../config.lua")
-local Protocol = dofile("../../protocol.lua")
+local common_config = require("SomeRectorCode.actual_src.config")
+local Protocol = require("SomeRectorCode.actual_src.protocol")
 
 local ReactorsServer = {}
 ReactorsServer.__index = ReactorsServer

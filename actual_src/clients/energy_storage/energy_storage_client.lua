@@ -1,12 +1,11 @@
--- Клиент мониторинга энергохранилищ
 local component = require("component")
 local event = require("event")
 local thread = require("thread")
 local computer = require("computer")
-local config = dofile("config.lua")
 
-local common_config = dofile("../../config.lua")
-local Protocol = dofile("../../protocol.lua")
+local config = require("SomeRectorCode.actual_src.clients.energy_storage.config")
+local common_config = require("SomeRectorCode.actual_src.config")
+local Protocol = require("SomeRectorCode.actual_src.protocol")
 
 local EnergyStorageClient = {}
 EnergyStorageClient.__index = EnergyStorageClient
@@ -28,7 +27,6 @@ function EnergyStorageClient:new(clientName)
     return self
 end
 
--- Инициализация клиента
 function EnergyStorageClient:init()
     print("Инициализация клиента энергохранилищ: " .. self.clientName)
     

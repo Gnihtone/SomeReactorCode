@@ -2,8 +2,8 @@
 local event = require("event")
 local thread = require("thread")
 
-local discord = dofile("discord_api.lua")
-local config = dofile("../../config.lua")
+local discord = require("SomeRectorCode.actual_src.server.discord.discord_api")
+local config = require("SomeRectorCode.actual_src.server.config")
 
 local integration = {}
 

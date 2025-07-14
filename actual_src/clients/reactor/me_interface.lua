@@ -1,10 +1,8 @@
--- Модуль работы с ME Interface Applied Energistics 2
 local component = require("component")
 
 local MEInterface = {}
 MEInterface.__index = MEInterface
 
--- Создание нового объекта ME Interface
 function MEInterface:new(transposerAddress)
     local self = setmetatable({}, MEInterface)
     
@@ -16,7 +14,6 @@ function MEInterface:new(transposerAddress)
     return self
 end
 
--- Поиск ME Interface подключенного к transposer
 function MEInterface:findMEInterface()
     for side = 0, 5 do
         local inventoryName = self.transposer.getInventoryName(side)
@@ -46,7 +43,6 @@ function MEInterface:findItemInME(itemName, minDamage, maxDamage)
     return nil
 end
 
--- Запрос предмета из ME системы
 function MEInterface:requestItem(itemName, amount, damage)
     local slot, stack = self:findItemInME(itemName, damage, damage)
     if slot and stack then

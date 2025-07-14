@@ -2,10 +2,10 @@
 local component = require("component")
 local term = require("term")
 
-local config = dofile("config.lua")
+local config = require("SomeRectorCode.actual_src.server.config")
 local gpu = component.gpu
 
-local common_config = dofile("../config.lua")
+local common_config = require("SomeRectorCode.actual_src.config")
 
 local VacuumUI = {}
 VacuumUI.__index = VacuumUI
