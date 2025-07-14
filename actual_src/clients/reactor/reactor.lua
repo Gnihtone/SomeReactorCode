@@ -80,7 +80,7 @@ function VacuumReactor:init(reactor, transposer)
     self.transposer = transposer
 
     for side = 0, 5 do
-        if self.transposer.getInventoryName(side) == "reactor_chamber" then
+        if self.transposer.getInventoryName(side):find("Reactor") then
             self.reactorSide = side
             break
         end

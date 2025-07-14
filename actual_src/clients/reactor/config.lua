@@ -3,7 +3,8 @@ local config = {}
 config.REACTOR = {
     MAX_TEMPERATURE = 10000,
     COOLANT_MIN_DAMAGE = 0.1,
-    UPDATE_INTERVAL = 0.1
+    UPDATE_INTERVAL = 0.1,
+    CRITICAL_TEMP_PERCENT = 0.85
 }
 
 config.ITEMS = {

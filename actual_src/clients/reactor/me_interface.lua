@@ -17,7 +17,7 @@ end
 function MEInterface:findMEInterface()
     for side = 0, 5 do
         local inventoryName = self.transposer.getInventoryName(side)
-        if inventoryName and (inventoryName:find("interface") or inventoryName:find("me_interface")) then
+        if inventoryName and inventoryName:find("BlockInterface") then
             self.meSide = side
             self.meInterfaceAddress = inventoryName
             return true

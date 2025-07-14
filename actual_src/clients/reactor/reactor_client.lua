@@ -7,8 +7,8 @@ local config = require("SomeReactorCode.actual_src.clients.reactor.config")
 local VacuumReactor = require("SomeReactorCode.actual_src.clients.reactor.reactor")
 local MEInterface = require("SomeReactorCode.actual_src.clients.reactor.me_interface")
 
-local common_config = require("SomeRectorCode.actual_src.config")
-local Protocol = require("SomeRectorCode.actual_src.protocol")
+local common_config = require("SomeReactorCode.actual_src.config")
+local Protocol = require("SomeReactorCode.actual_src.protocol")
 
 local VacuumClientManager = {}
 VacuumClientManager.__index = VacuumClientManager
@@ -53,7 +53,7 @@ function VacuumClientManager:init()
 
         reactor.reactor = component.proxy(reactorAddress)
 
-        local transposerAddress = self:findNearestTransposer(reactor.reactor)
+        local transposerAddress = self:findNearestTransposer(reactor)
         if transposerAddress then
             reactor.transposer = component.proxy(transposerAddress)
 
@@ -97,15 +97,15 @@ local function checkInventoriesAreSame(transposer, reactorSide, reactor)
         local x = slot % 9
         local y = math.floor(slot / 9)
         local slotInfo = reactor.getSlotInfo(x, y)
-        if next(stack) == nil and next(slotInfo) == nil then
+        if (stack == nil or next(stack) == nil) and (slotInfo == nil or next(slotInfo) == nil) then
             goto continue
         end
 
-        if next(stack) == nil or next(slotInfo) == nil then
+        if stack == nil or next(stack) == nil or slotInfo == nil or next(slotInfo) == nil then
             return false
         end
 
-        if stack.name ~= slotInfo.name then
+        if stack.name ~= slotInfo.item.name then
             return false
         end
 
@@ -127,9 +127,9 @@ function VacuumClientManager:findNearestTransposer(reactor)
                 goto continue
             end
 
-            if inventoryName:find("reactor") then
+            if inventoryName:find("Reactor") then
                 currentReactorSide = side
-            elseif inventoryName:find("me_interface") then
+            elseif inventoryName:find("BlockInterface") then
                 currentMeInterfaceSide = side
             else
                 anotherStorageSide = side
@@ -148,7 +148,7 @@ function VacuumClientManager:findNearestTransposer(reactor)
             error("Не найден другой инвентарь для transposer " .. transposerAddress)
         end
 
-        if not checkInventoriesAreSame(transposer, currentReactorSide, reactor) then
+        if not checkInventoriesAreSame(transposer, currentReactorSide, reactor.reactor) then
             goto continue
         end
 
@@ -156,9 +156,9 @@ function VacuumClientManager:findNearestTransposer(reactor)
 
         local transferredSlot = nil
         for slot, stack in pairs(reactorInventory) do
-            if next(stack) ~= nil then
+            if stack and next(stack) ~= nil then
                 transferredSlot = slot
-                local transferred = transposer.transferItem(currentReactorSide, anotherStorageSide, 1, slot, 1)
+                local transferred = transposer.transferItem(currentReactorSide, anotherStorageSide, 1, slot + 1, 1)
                 if transferred == 0 then
                     error("Скорее всего другое хранилище заполнено, переместить из реактора в другое хранилище не удалось")
                 end
@@ -170,11 +170,11 @@ function VacuumClientManager:findNearestTransposer(reactor)
         end
 
         local found = false
-        if checkInventoriesAreSame(transposer, currentReactorSide, reactor) then
+        if checkInventoriesAreSame(transposer, currentReactorSide, reactor.reactor) then
             found = true
         end
 
-        transposer.transferItem(anotherStorageSide, currentReactorSide, 1, 1, transferredSlot)
+        transposer.transferItem(anotherStorageSide, currentReactorSide, 1, 1, transferredSlot + 1)
         if found then
             return transposerAddress
         end
