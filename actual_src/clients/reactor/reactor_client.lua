@@ -110,19 +110,6 @@ local function checkSlotsAreSame(slot, stack, reactor)
     return true
 end
 
-local function checkInventoriesAreSame(transposer, reactorSide, reactor)
-    local reactorInventory = transposer.getAllStacks(reactorSide).getAll()
-    
-    for slot, stack in pairs(reactorInventory) do
-        slot = slot + 1
-        if not checkSlotsAreSame(slot, stack, reactor) then
-            return false
-        end
-    end
-
-    return true
-end
-
 function VacuumClientManager:findNearestTransposer(reactor)
     for _, transposerAddress in ipairs(self.transposerAddresses) do
         local transposer = component.proxy(transposerAddress)
@@ -156,10 +143,6 @@ function VacuumClientManager:findNearestTransposer(reactor)
             error("Не найден другой инвентарь для transposer " .. transposerAddress)
         end
 
-        if not checkInventoriesAreSame(transposer, currentReactorSide, reactor) then
-            goto continue
-        end
-
         local reactorInventory = transposer.getAllStacks(currentReactorSide).getAll()
 
         local transferredSlot = nil
@@ -167,15 +150,21 @@ function VacuumClientManager:findNearestTransposer(reactor)
             slot = slot + 1
             if stack and next(stack) ~= nil then
                 transferredSlot = slot
-                local transferred = transposer.transferItem(currentReactorSide, anotherStorageSide, 1, slot, 1)
-                if transferred == 0 then
-                    error("Скорее всего другое хранилище заполнено, переместить из реактора в другое хранилище не удалось")
-                end
                 break
             end
         end
         if transferredSlot == nil then
             error("Какой-то из реакторов пуст")
+        end
+
+        local notTransferredStack = transposer.getStackInSlot(currentReactorSide, transferredSlot)
+        if not checkSlotsAreSame(transferredSlot, notTransferredStack, reactor) then
+            goto continue
+        end
+
+        local transferred = transposer.transferItem(currentReactorSide, anotherStorageSide, 1, transferredSlot, 1)
+        if transferred == 0 then
+            error("Скорее всего другое хранилище заполнено, переместить из реактора в другое хранилище не удалось")
         end
 
         local found = false
