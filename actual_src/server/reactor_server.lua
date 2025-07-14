@@ -65,23 +65,23 @@ function ReactorsServer:init()
 end
 
 function ReactorsServer:setupHandlers()
-    self.protocol:registerHandler(config.MESSAGES.REGISTER, function(data, from)
+    self.protocol:registerHandler(common_config.MESSAGES.REGISTER, function(data, from)
         self:handleClientRegister(data, from)
     end)
     
-    self.protocol:registerHandler(config.MESSAGES.UNREGISTER, function(data, from)
+    self.protocol:registerHandler(common_config.MESSAGES.UNREGISTER, function(data, from)
         self:handleClientUnregister(data, from)
     end)
     
-    self.protocol:registerHandler(config.MESSAGES.STATUS_UPDATE, function(data, from)
+    self.protocol:registerHandler(common_config.MESSAGES.STATUS_UPDATE, function(data, from)
         self:handleStatusUpdate(data, from)
     end)
     
-    self.protocol:registerHandler(config.MESSAGES.ENERGY_STORAGE_UPDATE, function(data, from)
+    self.protocol:registerHandler(common_config.MESSAGES.ENERGY_STORAGE_UPDATE, function(data, from)
         self:handleEnergyStorageUpdate(data, from)
     end)
     
-    self.protocol:registerHandler(config.MESSAGES.LOG, function(data, from)
+    self.protocol:registerHandler(common_config.MESSAGES.LOG, function(data, from)
         self:handleClientLog(data, from)
     end)
 end
@@ -89,7 +89,7 @@ end
 function ReactorsServer:handleClientRegister(data, address)
     self:log("INFO", "Регистрация клиента: " .. data.name .. " [" .. address:sub(1, 8) .. "]")
     
-    if data.type == config.NETWORK.CLIENT_TYPES.REACTOR_CLIENT then
+    if data.type == common_config.NETWORK.CLIENT_TYPES.REACTOR_CLIENT then
         self.clients[address] = {
             address = address,
             name = data.name,
@@ -103,7 +103,7 @@ function ReactorsServer:handleClientRegister(data, address)
                 self.clients[address].reactors[reactor.reactorId] = reactor
             end
         end
-    elseif data.type == config.NETWORK.CLIENT_TYPES.ENERGY_STORAGE_CLIENT then
+    elseif data.type == common_config.NETWORK.CLIENT_TYPES.ENERGY_STORAGE_CLIENT then
         self.clients[address] = {
             address = address,
             name = data.name,
@@ -121,7 +121,7 @@ function ReactorsServer:handleClientRegister(data, address)
         self:log("ERROR", "Unknown client type: " .. data.type)
     end
     
-    self.protocol:sendAck(address, config.MESSAGES.REGISTER)
+    self.protocol:sendAck(address, common_config.MESSAGES.REGISTER)
     
     self:updateReactorList()
 end
@@ -130,7 +130,7 @@ function ReactorsServer:handleClientUnregister(data, address)
     if self.clients[address] then
         self:log("INFO", "Отключение клиента: " .. self.clients[address].name)
         
-        if self.clients[address].type == config.NETWORK.CLIENT_TYPES.REACTOR_CLIENT then
+        if self.clients[address].type == common_config.NETWORK.CLIENT_TYPES.REACTOR_CLIENT then
             for _, reactor in pairs(self.clients[address].reactors) do
                 reactor.status = common_config.REACTOR_STATUS.OFFLINE
             end
@@ -146,7 +146,7 @@ function ReactorsServer:handleStatusUpdate(data, address)
     if self.clients[address] then
         self.clients[address].lastSeen = computer.uptime()
         
-        if self.clients[address].type == config.NETWORK.CLIENT_TYPES.REACTOR_CLIENT then
+        if self.clients[address].type == common_config.NETWORK.CLIENT_TYPES.REACTOR_CLIENT then
             if data.reactors then
                 for _, reactorData in ipairs(data.reactors) do
                     if self.clients[address].reactors[reactorData.reactorId] then
@@ -216,7 +216,7 @@ function ReactorsServer:pauseReactorsForEnergy(reason)
     end
     
     for address, client in pairs(self.clients) do
-        if client.type == config.NETWORK.CLIENT_TYPES.REACTOR_CLIENT then
+        if client.type == common_config.NETWORK.CLIENT_TYPES.REACTOR_CLIENT then
             for reactorId, reactor in pairs(client.reactors) do
                 if reactor.status == common_config.REACTOR_STATUS.RUNNING then
                     self.protocol:sendCommand(address, common_config.COMMANDS.STOP, {}, reactorId)
@@ -231,7 +231,7 @@ function ReactorsServer:resumeReactorsFromEnergyPause()
     self:log("INFO", "Возобновление работы реакторов после освобождения энергохранилища")
     
     for address, client in pairs(self.clients) do
-        if client.type == config.NETWORK.CLIENT_TYPES.REACTOR_CLIENT then
+        if client.type == common_config.NETWORK.CLIENT_TYPES.REACTOR_CLIENT then
             for reactorId, reactor in pairs(client.reactors) do
                 if self.pausedReactors[reactorId] then
                     self.protocol:sendCommand(address, common_config.COMMANDS.START, {}, reactorId)
@@ -278,11 +278,11 @@ function ReactorsServer:updateReactorList()
     self.reactorList = {}
     
     for address, client in pairs(self.clients) do
-        if client.type == config.NETWORK.CLIENT_TYPES.REACTOR_CLIENT then
+        if client.type == common_config.NETWORK.CLIENT_TYPES.REACTOR_CLIENT then
             for reactorId, reactor in pairs(client.reactors) do
                 table.insert(self.reactorList, reactor)
             end
-        elseif client.type == config.NETWORK.CLIENT_TYPES.REACTOR_CLIENT and client.reactorData then
+        elseif client.type == common_config.NETWORK.CLIENT_TYPES.REACTOR_CLIENT and client.reactorData then
             table.insert(self.reactorList, client.reactorData)
         end
     end
@@ -351,19 +351,19 @@ function ReactorsServer:getRecentLogs(count)
 end
 
 function ReactorsServer:startReactor(reactorName)
-    return self:sendReactorCommand(reactorName, config.COMMANDS.START)
+    return self:sendReactorCommand(reactorName, common_config.COMMANDS.START)
 end
 
 function ReactorsServer:stopReactor(reactorName)
-    return self:sendReactorCommand(reactorName, config.COMMANDS.STOP)
+    return self:sendReactorCommand(reactorName, common_config.COMMANDS.STOP)
 end
 
 function ReactorsServer:startAllReactors()
-    self:sendReactorCommandToAll(config.COMMANDS.START)
+    self:sendReactorCommandToAll(common_config.COMMANDS.START)
 end
 
 function ReactorsServer:stopAllReactors()
-    self:sendReactorCommandToAll(config.COMMANDS.STOP)
+    self:sendReactorCommandToAll(common_config.COMMANDS.STOP)
 end
 
 function ReactorsServer:sendReactorCommand(reactorName, command)
@@ -375,9 +375,9 @@ function ReactorsServer:sendReactorCommand(reactorName, command)
                     self:log("INFO", "Команда " .. command .. " отправлена на " .. reactorName)
                     
                     if self.discord then
-                        if command == config.COMMANDS.START then
+                        if command == common_config.COMMANDS.START then
                             self.discord.sendNotification("REACTOR_START", {name = reactorName, id = reactorId})
-                        elseif command == config.COMMANDS.STOP then
+                        elseif command == common_config.COMMANDS.STOP then
                             self.discord.sendNotification("REACTOR_STOP", {name = reactorName, id = reactorId})
                         end
                     end
@@ -390,9 +390,9 @@ function ReactorsServer:sendReactorCommand(reactorName, command)
             self:log("INFO", "Команда " .. command .. " отправлена на " .. reactorName)
             
             if self.discord then
-                if command == config.COMMANDS.START then
+                if command == common_config.COMMANDS.START then
                     self.discord.sendNotification("REACTOR_START", {name = reactorName})
-                elseif command == config.COMMANDS.STOP then
+                elseif command == common_config.COMMANDS.STOP then
                     self.discord.sendNotification("REACTOR_STOP", {name = reactorName})
                 end
             end
@@ -414,7 +414,7 @@ function ReactorsServer:sendReactorCommandToAll(command)
 end
 
 function ReactorsServer:exit()
-    self:sendReactorCommandToAll(config.COMMANDS.STOP)
+    self:sendReactorCommandToAll(common_config.COMMANDS.STOP)
     self.running = false
 end
 

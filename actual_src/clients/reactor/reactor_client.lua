@@ -223,13 +223,13 @@ function VacuumClientManager:registerToServer()
         table.insert(reactorList, formatReactorData(reactor))
     end
     
-    self.protocol:send("broadcast", config.MESSAGES.REGISTER, {
+    self.protocol:send("broadcast", common_config.MESSAGES.REGISTER, {
         name = self.clientName,
         type = common_config.NETWORK.CLIENT_TYPES.REACTOR_CLIENT,
         reactors = reactorList
     })
     
-    local timeout = computer.uptime() + config.NETWORK.TIMEOUT
+    local timeout = computer.uptime() + common_config.NETWORK.TIMEOUT
     while computer.uptime() < timeout and not self.serverAddress do
         os.sleep(0.5)
     end
@@ -273,7 +273,7 @@ function VacuumClientManager:sendStatusUpdate()
         table.insert(reactorsData, formatReactorData(reactorData))
     end
     
-    self.protocol:send(self.serverAddress, config.MESSAGES.STATUS_UPDATE, {
+    self.protocol:send(self.serverAddress, common_config.MESSAGES.STATUS_UPDATE, {
         clientName = self.clientName,
         reactors = reactorsData
     })
@@ -284,7 +284,7 @@ end
 function VacuumClientManager:sendLog(level, message, reactorId)
     if self.serverAddress then
         local logData = self.protocol:formatLogMessage(level, message, reactorId or self.clientName)
-        self.protocol:send(self.serverAddress, config.MESSAGES.LOG, logData)
+        self.protocol:send(self.serverAddress, common_config.MESSAGES.LOG, logData)
     end
 end
 
@@ -339,7 +339,7 @@ function VacuumClientManager:run()
     end
     
     if self.serverAddress then
-        self.protocol:send(self.serverAddress, config.MESSAGES.UNREGISTER, {
+        self.protocol:send(self.serverAddress, common_config.MESSAGES.UNREGISTER, {
             name = self.clientName
         })
     end

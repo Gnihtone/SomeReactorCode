@@ -1,8 +1,9 @@
 -- Discord API модуль для OpenComputers
 local component = require("component")
-local json = require("json")
 local event = require("event")
 local computer = require("computer")
+
+local json = require("SomeReactorCode.actual_src.server.discord.json")
 
 local discord = {}
 
