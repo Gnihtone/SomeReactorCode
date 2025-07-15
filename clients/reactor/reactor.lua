@@ -107,6 +107,8 @@ function VacuumReactor:clearBuffer()
     for slot = 1, #self.savedLayout do
         self.meInterface:exportToME(self.storageSide, slot, 1)
     end
+    self.coolantCellsSlots = {}
+    self.rodsSlots = {}
 end
 
 function VacuumReactor:updateBuffer()
