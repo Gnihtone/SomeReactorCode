@@ -100,7 +100,7 @@ function VacuumReactor:init(reactor, transposer)
         if inventoryName then
             if inventoryName:find("Reactor") then
                 self.reactorSide = side
-            elseif not inventoryName:find("BlockInterface") and inventorySize >= minInventorySize then
+            elseif not inventoryName:find("BlockInterface") and not inventoryName:find("fullDrawer") and inventorySize >= minInventorySize then
                 self.storageSide = side
             end
         end

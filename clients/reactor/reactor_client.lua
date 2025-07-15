@@ -117,6 +117,7 @@ function VacuumClientManager:findNearestTransposer(reactor)
         local currentReactorSide = nil
         local currentMeInterfaceSide = nil
         local anotherStorageSide = nil
+        local currentDrawerSide = nil
         for side = 0, 5 do
             local inventoryName = transposer.getInventoryName(side)
             if not inventoryName then
@@ -127,6 +128,8 @@ function VacuumClientManager:findNearestTransposer(reactor)
                 currentReactorSide = side
             elseif inventoryName:find("BlockInterface") then
                 currentMeInterfaceSide = side
+            elseif inventoryName:find("fullDrawer") then
+                currentDrawerSide = side
             elseif transposer.getInventorySize(side) >= minInventorySize then
                 anotherStorageSide = side
             end
@@ -142,6 +145,9 @@ function VacuumClientManager:findNearestTransposer(reactor)
         end
         if not anotherStorageSide then
             error("Не найден другой инвентарь для transposer " .. transposerAddress)
+        end
+        if not currentDrawerSide then
+            error("Не найден drawer для transposer " .. transposerAddress)
         end
 
         local reactorInventory = transposer.getAllStacks(currentReactorSide).getAll()
