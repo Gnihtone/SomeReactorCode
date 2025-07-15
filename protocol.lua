@@ -17,6 +17,10 @@ function Protocol:new(isServer)
     if component.isAvailable("modem") then
         self.modem = component.modem
         self.modem.open(config.NETWORK.PORT)
+
+        if self.modem.isWireless() then
+            self.modem.setStrength(config.NETWORK.RELAY_STRENGTH)
+        end
     else
         error("Модем не найден! Требуется беспроводная сетевая карта или модем.")
     end

@@ -266,6 +266,8 @@ function VacuumReactor:replaceCoolantCells(damagedCells)
         end
     end
     
+    self:log("INFO", "Реактор остановлен для обслуживания")
+    self.reactor.setActive(false)
     -- Step 2: Create parallel threads to handle cell replacement
     local threads = {}
     for i, cell in ipairs(damagedCells) do
@@ -308,6 +310,9 @@ function VacuumReactor:replaceCoolantCells(damagedCells)
         t:join()
     end
     
+    if (success) then
+        self.reactor.setActive(true)
+    end
     return success
 end
 
@@ -346,6 +351,8 @@ function VacuumReactor:replaceDepletedRods(depletedRods)
         end
     end
     
+    self:log("INFO", "Реактор остановлен для обслуживания")
+    self.reactor.setActive(false)
     -- Step 2: Create parallel threads to handle rod replacement
     local threads = {}
     for i, rod in ipairs(depletedRods) do
@@ -391,6 +398,9 @@ function VacuumReactor:replaceDepletedRods(depletedRods)
         t:join()
     end
     
+    if (success) then
+        self.reactor.setActive(true)
+    end
     return success
 end
 
@@ -412,9 +422,6 @@ function VacuumReactor:performMaintenance(damagedCells, depletedRods)
     end
     
     self.status = common_config.REACTOR_STATUS.MAINTENANCE
-    
-    self.reactor.setActive(false)
-    self:log("INFO", "Реактор остановлен для обслуживания")
     
     local success = true
 
