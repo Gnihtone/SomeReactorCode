@@ -54,7 +54,11 @@ function VacuumReactor:new(name)
     self.startTime = computer.uptime()
     self.lastUpdateTime = computer.uptime()
 
+    -- Buffer management
     self.bufferThread = nil
+    self.coolantCellsSlots = {}
+    self.rodsSlots = {}
+    self.needChangeRods = true
     
     return self
 end
@@ -78,33 +82,46 @@ function VacuumReactor:saveCurrentLayout()
     self:log("INFO", "Схема реактора сохранена: " .. #self.savedLayout .. " предметов")
 end
 
+local function isFuelRod(itemName)
+    for _, fuelType in ipairs(config.ITEMS.FUEL_RODS) do
+        if itemName == fuelType then
+            return true
+        end
+    end
+    return false
+end
+
+function VacuumReactor:initBuffer()
+    for slot = 1, #self.currentLayout do
+        if self.isCoolantCell[slot] then
+            table.insert(self.coolantCellsSlots, slot)
+        end
+        if isFuelRod(self.currentLayout[slot].name) then
+            table.insert(self.rodsSlots, slot)
+        end
+    end
+    self.needChangeRods = true
+end
+
 function VacuumReactor:clearBuffer()
     for slot = 1, #self.savedLayout do
         self.meInterface:exportToME(self.storageSide, slot, 1)
-        os.sleep(0.05)
     end
 end
 
 function VacuumReactor:updateBuffer()
-    local bufferSlots = {}
-
-    for slot, stack in pairs(self.transposer.getAllStacks(self.storageSide).getAll()) do
-        slot = slot + 1
-        bufferSlots[slot] = stack
+    for _, slot in ipairs(self.coolantCellsSlots) do
+        local stack = self.savedLayout[slot]
+        
+        self.meInterface:importFromME(stack.name, stack.size, self.storageSide, slot, 0)
     end
 
-    for slot = 1, #self.savedLayout do
-        local stack = self.savedLayout[slot]
-
-        if stack == nil or next(stack) == nil then
-            goto continue
-        end
-        
-        if bufferSlots[slot] == nil or next(bufferSlots[slot]) == nil then
+    if self.needChangeRods then
+        for _, slot in ipairs(self.rodsSlots) do
+            local stack = self.savedLayout[slot]
             self.meInterface:importFromME(stack.name, stack.size, self.storageSide, slot, 0)
         end
-
-        ::continue::
+        self.needChangeRods = false
     end
 end
 
@@ -117,6 +134,9 @@ function VacuumReactor:stopBufferThread()
 end
 
 function VacuumReactor:startBufferThread()
+    self:stopBufferThread()
+
+    self:initBuffer()
     self.bufferThread = thread.create(function()
         while true do
             self:updateBuffer()
@@ -317,8 +337,6 @@ function VacuumReactor:replaceCoolantCells(damagedCells)
                 self:log("ERROR", "Не удалось переместить поврежденную cell из слота " .. cell.slot)
                 success = false
             end
-            
-            os.sleep(0.05)
         end
         
         table.insert(threads, thread.create(thread_func))
@@ -378,6 +396,8 @@ function VacuumReactor:replaceDepletedRods(depletedRods)
         t:join()
     end
 
+    self.needChangeRods = true
+
     return success
 end
 
@@ -423,6 +443,7 @@ function VacuumReactor:performMaintenance(damagedCells, depletedRods)
         self.status = common_config.REACTOR_STATUS.RUNNING
         self:log("INFO", "Реактор перезапущен после обслуживания")
     elseif not success then
+        self:stopBufferThread()
         self:log("WARNING", "Реактор не перезапущен из-за ошибок обслуживания")
     end
     
@@ -740,11 +761,8 @@ function VacuumReactor:analyzeComponents()
         end
         
         if stack then
-            for _, fuelType in ipairs(config.ITEMS.FUEL_RODS) do
-                if stack.name == fuelType then
-                    fuelCount = fuelCount + 1
-                    break
-                end
+            if isFuelRod(stack.name) then
+                fuelCount = fuelCount + 1
             end
         end
 
@@ -836,4 +854,4 @@ function VacuumReactor:clearReactor()
     return itemsCleared
 end
 
-return VacuumReactor 
+return VacuumReactor
