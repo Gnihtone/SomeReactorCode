@@ -33,6 +33,9 @@ function DrawerInterface:cacheCells()
     
     for slot, stack in pairs(stacks) do
         slot = slot + 1
+        if slot < 5 then
+            goto continue
+        end
         if stack and next(stack) then
             local key = stack.name
             if not self.cachedCells[key] then
@@ -45,22 +48,8 @@ function DrawerInterface:cacheCells()
             end
             table.insert(self.cachedCells[key].slots, slot)
         end
-    end
-end
 
-function DrawerInterface:updateCachedItem(itemName, amount)
-    local key = itemName
-    if self.cachedCells[key] then
-        self.cachedCells[key].size = self.cachedCells[key].size + amount
-        if self.cachedCells[key].size <= 0 then
-            self.cachedCells[key] = nil
-        end
-    elseif amount > 0 then
-        self.cachedCells[key] = {
-            name = itemName,
-            size = amount,
-            slots = {}
-        }
+        ::continue::
     end
 end
 
