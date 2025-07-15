@@ -82,12 +82,14 @@ function VacuumReactor:init(reactor, transposer)
     self.reactor = reactor
     self.transposer = transposer
 
+    local minInventorySize = 60
     for side = 0, 5 do
         local inventoryName = self.transposer.getInventoryName(side)
+        local inventorySize = self.transposer.getInventorySize(side)
         if inventoryName then
             if inventoryName:find("Reactor") then
                 self.reactorSide = side
-            elseif not inventoryName:find("BlockInterface") then
+            elseif not inventoryName:find("BlockInterface") and inventorySize >= minInventorySize then
                 self.storageSide = side
             end
         end

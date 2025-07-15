@@ -111,6 +111,7 @@ local function checkSlotsAreSame(slot, stack, reactor)
 end
 
 function VacuumClientManager:findNearestTransposer(reactor)
+    local minInventorySize = 60
     for _, transposerAddress in ipairs(self.transposerAddresses) do
         local transposer = component.proxy(transposerAddress)
         local currentReactorSide = nil
@@ -126,7 +127,7 @@ function VacuumClientManager:findNearestTransposer(reactor)
                 currentReactorSide = side
             elseif inventoryName:find("BlockInterface") then
                 currentMeInterfaceSide = side
-            else
+            elseif transposer.getInventorySize(side) >= minInventorySize then
                 anotherStorageSide = side
             end
 
@@ -164,7 +165,7 @@ function VacuumClientManager:findNearestTransposer(reactor)
 
         local transferred = transposer.transferItem(currentReactorSide, anotherStorageSide, 1, transferredSlot, 1)
         if transferred == 0 then
-            error("Скорее всего другое хранилище заполнено, переместить из реактора в другое хранилище не удалось")
+            goto next_transposer
         end
 
         local found = false
