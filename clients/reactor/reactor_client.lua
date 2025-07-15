@@ -159,7 +159,7 @@ function VacuumClientManager:findNearestTransposer(reactor)
 
         local notTransferredStack = transposer.getStackInSlot(currentReactorSide, transferredSlot)
         if not checkSlotsAreSame(transferredSlot, notTransferredStack, reactor) then
-            goto continue
+            goto next_transposer
         end
 
         local transferred = transposer.transferItem(currentReactorSide, anotherStorageSide, 1, transferredSlot, 1)
@@ -178,7 +178,7 @@ function VacuumClientManager:findNearestTransposer(reactor)
             return transposerAddress
         end
 
-        ::continue::
+        ::next_transposer::
     end
     
     return nil
