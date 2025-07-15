@@ -4,6 +4,7 @@ local thread = require("thread")
 
 local config = require("SomeReactorCode.clients.reactor.config")
 local MEInterface = require("SomeReactorCode.clients.reactor.me_interface")
+local DrawerInterface = require("SomeReactorCode.clients.reactor.drawer_interface")
 
 local common_config = require("SomeReactorCode.config")
 
@@ -20,6 +21,7 @@ function VacuumReactor:new(name)
     self.reactor = nil
     self.transposer = nil
     self.meInterface = nil
+    self.drawerInterface = nil
 
     self.reactorSide = nil
     self.storageSide = nil
@@ -53,12 +55,6 @@ function VacuumReactor:new(name)
     self.logs = {}
     self.startTime = computer.uptime()
     self.lastUpdateTime = computer.uptime()
-
-    -- Buffer management
-    self.bufferThread = nil
-    self.coolantCellsSlots = {}
-    self.rodsSlots = {}
-    self.needChangeRods = true
     
     return self
 end
@@ -91,62 +87,6 @@ local function isFuelRod(itemName)
     return false
 end
 
-function VacuumReactor:initBuffer()
-    for slot = 1, #self.currentLayout do
-        if self.isCoolantCell[slot] then
-            table.insert(self.coolantCellsSlots, slot)
-        end
-        if isFuelRod(self.currentLayout[slot].name) then
-            table.insert(self.rodsSlots, slot)
-        end
-    end
-    self.needChangeRods = true
-end
-
-function VacuumReactor:clearBuffer()
-    for slot = 1, #self.savedLayout do
-        self.meInterface:exportToME(self.storageSide, slot, 1)
-    end
-    self.coolantCellsSlots = {}
-    self.rodsSlots = {}
-end
-
-function VacuumReactor:updateBuffer()
-    for _, slot in ipairs(self.coolantCellsSlots) do
-        local stack = self.savedLayout[slot]
-        
-        self.meInterface:importFromME(stack.name, stack.size, self.storageSide, slot, 0)
-    end
-
-    if self.needChangeRods then
-        for _, slot in ipairs(self.rodsSlots) do
-            local stack = self.savedLayout[slot]
-            self.meInterface:importFromME(stack.name, stack.size, self.storageSide, slot, 0)
-        end
-        self.needChangeRods = false
-    end
-end
-
-function VacuumReactor:stopBufferThread()
-    if self.bufferThread then
-        self.bufferThread:kill()
-        self.bufferThread = nil
-    end
-    self:clearBuffer()
-end
-
-function VacuumReactor:startBufferThread()
-    self:stopBufferThread()
-
-    self:initBuffer()
-    self.bufferThread = thread.create(function()
-        while true do
-            self:updateBuffer()
-            os.sleep(3)
-        end
-    end)
-end
-
 function VacuumReactor:init(reactor, transposer)
     self:log("INFO", "Инициализация реактора: " .. self.name)
 
@@ -177,7 +117,7 @@ function VacuumReactor:init(reactor, transposer)
 
     local transposerAddress = transposer.address
     self.meInterface = MEInterface:new(transposerAddress)
-
+    self.drawerInterface = DrawerInterface:new(transposerAddress)
     self.information.isBreeder = self:checkIsBreeder()
     
     self:log("INFO", "Инициализация завершена")
@@ -199,7 +139,6 @@ function VacuumReactor:startReactor()
         self:log("WARNING", "Обслуживание не завершено, но реактор будет запущен")
     end
 
-    self:startBufferThread()
     self.reactor.setActive(true)
     self.status = common_config.REACTOR_STATUS.RUNNING
     self:log("INFO", "Реактор запущен")
@@ -209,7 +148,6 @@ end
 function VacuumReactor:stopReactor()
     self.reactor.setActive(false)
     self.status = common_config.REACTOR_STATUS.IDLE
-    self:stopBufferThread()
 
     self:log("INFO", "Выполнение обслуживания перед полной остановкой...")
     self:updateCurrentLayout()
@@ -323,15 +261,9 @@ function VacuumReactor:replaceCoolantCells(damagedCells)
             )
             
             if transferred > 0 then
-                local movedToReactor = self.transposer.transferItem(
-                    self.storageSide,
-                    self.reactorSide,
-                    1,
-                    storageSlot,
-                    cell.slot
-                )
+                local movedToReactor = self.drawerInterface:importFromDrawer(cell.stack.name, cell.stack.size, self.reactorSide, cell.slot)
                 
-                if movedToReactor == 0 then
+                if movedToReactor ~= cell.stack.size then
                     self:log("ERROR", "Не удалось переместить новую охлаждающую ячейку из хранилища в слот " .. cell.slot)
                     success = false
                 end
@@ -369,12 +301,12 @@ function VacuumReactor:replaceDepletedRods(depletedRods)
             )
             
             if transferred > 0 then
-                local movedToReactor = self.transposer.transferItem(
-                    self.storageSide,
-                    self.reactorSide,
+                local movedToReactor = self.meInterface:importFromME(
+                    originalRod.name,
                     originalRod.size,
-                    storageSlot,
-                    rod.slot
+                    self.reactorSide,
+                    rod.slot,
+                    0
                 )
                 
                 if movedToReactor < originalRod.size then
@@ -397,8 +329,6 @@ function VacuumReactor:replaceDepletedRods(depletedRods)
     for _, t in ipairs(threads) do
         t:join()
     end
-
-    self.needChangeRods = true
 
     return success
 end
@@ -445,7 +375,6 @@ function VacuumReactor:performMaintenance(damagedCells, depletedRods)
         self.status = common_config.REACTOR_STATUS.RUNNING
         self:log("INFO", "Реактор перезапущен после обслуживания")
     elseif not success then
-        self:stopBufferThread()
         self:log("WARNING", "Реактор не перезапущен из-за ошибок обслуживания")
     end
     
