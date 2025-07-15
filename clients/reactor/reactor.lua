@@ -53,6 +53,8 @@ function VacuumReactor:new(name)
     self.logs = {}
     self.startTime = computer.uptime()
     self.lastUpdateTime = computer.uptime()
+
+    self.bufferThread = nil
     
     return self
 end
@@ -74,6 +76,53 @@ function VacuumReactor:saveCurrentLayout()
     end
     
     self:log("INFO", "Схема реактора сохранена: " .. #self.savedLayout .. " предметов")
+end
+
+function VacuumReactor:clearBuffer()
+    for slot = 1, #self.savedLayout do
+        self.meInterface:exportToME(self.storageSide, slot, 1)
+        os.sleep(0.05)
+    end
+end
+
+function VacuumReactor:updateBuffer()
+    local bufferSlots = {}
+
+    for slot, stack in pairs(self.transposer.getAllStacks(self.storageSide).getAll()) do
+        slot = slot + 1
+        bufferSlots[slot] = stack
+    end
+
+    for slot = 1, #self.savedLayout do
+        local stack = self.savedLayout[slot]
+
+        if stack == nil or next(stack) == nil then
+            goto continue
+        end
+        
+        if bufferSlots[slot] == nil or next(bufferSlots[slot]) == nil then
+            self.meInterface:importFromME(stack.name, stack.size, self.storageSide, slot, 0)
+        end
+
+        ::continue::
+    end
+end
+
+function VacuumReactor:stopBufferThread()
+    if self.bufferThread then
+        self.bufferThread:kill()
+        self.bufferThread = nil
+    end
+    self:clearBuffer()
+end
+
+function VacuumReactor:startBufferThread()
+    self.bufferThread = thread.create(function()
+        while true do
+            self:updateBuffer()
+            os.sleep(3)
+        end
+    end)
 end
 
 function VacuumReactor:init(reactor, transposer)
@@ -128,6 +177,7 @@ function VacuumReactor:startReactor()
         self:log("WARNING", "Обслуживание не завершено, но реактор будет запущен")
     end
 
+    self:startBufferThread()
     self.reactor.setActive(true)
     self.status = common_config.REACTOR_STATUS.RUNNING
     self:log("INFO", "Реактор запущен")
@@ -137,6 +187,7 @@ end
 function VacuumReactor:stopReactor()
     self.reactor.setActive(false)
     self.status = common_config.REACTOR_STATUS.IDLE
+    self:stopBufferThread()
 
     self:log("INFO", "Выполнение обслуживания перед полной остановкой...")
     self:updateCurrentLayout()
@@ -237,41 +288,10 @@ function VacuumReactor:replaceCoolantCells(damagedCells)
     self:log("INFO", "Замена " .. #damagedCells .. " поврежденных coolant cells")
     
     local success = true
-    
-    -- Step 1: First fetch all needed coolant cells from ME to storage for faster access
-    local cellsToFetch = {}
-    for _, cell in ipairs(damagedCells) do
-        local originalCell = self.savedLayout[cell.slot]
-        table.insert(cellsToFetch, {
-            name = originalCell.name,
-            size = 1,
-            targetSlot = cell.slot
-        })
-    end
-    
-    -- Pre-fetch all required coolant cells to storage
-    self:log("INFO", "Предзагрузка охлаждающих элементов из ME в буферное хранилище")
-    for i, cellInfo in ipairs(cellsToFetch) do
-        local storageSlot = i
-        local pulled = self.meInterface:importFromME(
-            cellInfo.name,
-            cellInfo.size,
-            self.storageSide,
-            storageSlot,
-            0
-        )
-        
-        if pulled < cellInfo.size then
-            self:log("WARNING", "Не удалось предварительно загрузить " .. cellInfo.name .. " из ME")
-        end
-    end
-    
-    self:log("INFO", "Реактор остановлен для обслуживания")
-    self.reactor.setActive(false)
-    -- Step 2: Create parallel threads to handle cell replacement
+
     local threads = {}
     for i, cell in ipairs(damagedCells) do
-        local storageSlot = i
+        local storageSlot = cell.slot
         
         local thread_func = function()
             local transferred = self.meInterface:exportToME(
@@ -292,8 +312,6 @@ function VacuumReactor:replaceCoolantCells(damagedCells)
                 if movedToReactor == 0 then
                     self:log("ERROR", "Не удалось переместить новую охлаждающую ячейку из хранилища в слот " .. cell.slot)
                     success = false
-                else
-                    self:log("DEBUG", "Заменена coolant cell в слоте " .. cell.slot)
                 end
             else
                 self:log("ERROR", "Не удалось переместить поврежденную cell из слота " .. cell.slot)
@@ -309,10 +327,7 @@ function VacuumReactor:replaceCoolantCells(damagedCells)
     for _, t in ipairs(threads) do
         t:join()
     end
-    
-    if (success) then
-        self.reactor.setActive(true)
-    end
+
     return success
 end
 
@@ -321,46 +336,12 @@ function VacuumReactor:replaceDepletedRods(depletedRods)
     
     local success = true
     
-    -- Step 1: First fetch all needed rods from ME to storage for faster access
-    local rodsToFetch = {}
-    for _, rod in ipairs(depletedRods) do
-        local originalRod = self.savedLayout[rod.slot]
-        table.insert(rodsToFetch, {
-            name = originalRod.name,
-            size = originalRod.size,
-            targetSlot = rod.slot
-        })
-    end
-    
-    -- Pre-fetch all required rods to storage
-    local slotOffset = 30
-    self:log("INFO", "Предзагрузка топливных стержней из ME в буферное хранилище")
-    for i, rodInfo in ipairs(rodsToFetch) do
-        local storageSlot = i + slotOffset
-        local pulled = self.meInterface:importFromME(
-            rodInfo.name,
-            rodInfo.size,
-            self.storageSide,
-            storageSlot,
-            0
-        )
-        
-        if pulled < rodInfo.size then
-            self:log("WARNING", "Не удалось предварительно загрузить " .. rodInfo.name .. " из ME")
-            success = false
-        end
-    end
-    
-    self:log("INFO", "Реактор остановлен для обслуживания")
-    self.reactor.setActive(false)
-    -- Step 2: Create parallel threads to handle rod replacement
     local threads = {}
     for i, rod in ipairs(depletedRods) do
-        local storageSlot = i + slotOffset
+        local storageSlot = rod.slot
         local originalRod = self.savedLayout[rod.slot]
         
         local thread_func = function()
-            -- Move depleted rod from reactor to ME
             local transferred = self.meInterface:exportToME(
                 self.reactorSide,
                 rod.slot,
@@ -368,7 +349,6 @@ function VacuumReactor:replaceDepletedRods(depletedRods)
             )
             
             if transferred > 0 then
-                -- Move new rod from storage to reactor
                 local movedToReactor = self.transposer.transferItem(
                     self.storageSide,
                     self.reactorSide,
@@ -397,10 +377,7 @@ function VacuumReactor:replaceDepletedRods(depletedRods)
     for _, t in ipairs(threads) do
         t:join()
     end
-    
-    if (success) then
-        self.reactor.setActive(true)
-    end
+
     return success
 end
 
@@ -422,6 +399,8 @@ function VacuumReactor:performMaintenance(damagedCells, depletedRods)
     end
     
     self.status = common_config.REACTOR_STATUS.MAINTENANCE
+    self:log("INFO", "Реактор остановлен для обслуживания")
+    self.reactor.setActive(false)
     
     local success = true
 
@@ -448,18 +427,6 @@ function VacuumReactor:performMaintenance(damagedCells, depletedRods)
     end
     
     return success
-end
-
-function VacuumReactor:pullFromME(itemName, amount, targetSlot, damage)
-    local transferred = self.meInterface:importFromME(
-        itemName, 
-        amount, 
-        self.reactorSide, 
-        targetSlot,
-        damage
-    )
-    
-    return transferred
 end
 
 function VacuumReactor:emergencyStop()
