@@ -132,6 +132,7 @@ function VacuumReactor:startReactor()
 
     self:updateCurrentLayout()
     self:saveCurrentLayout()
+    self.drawerInterface:refreshCache()
 
     self.information.isBreeder = self:checkIsBreeder()
 

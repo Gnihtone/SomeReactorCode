@@ -33,7 +33,7 @@ function DrawerInterface:cacheCells()
     
     for slot, stack in pairs(stacks) do
         slot = slot + 1
-        if stack then
+        if stack and next(stack) then
             local key = stack.name
             if not self.cachedCells[key] then
                 self.cachedCells[key] = {
